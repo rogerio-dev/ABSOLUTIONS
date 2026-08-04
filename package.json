@@ -1,0 +1,19 @@
+{
+  "name": "ab-solutions-site",
+  "version": "1.0.0",
+  "description": "Site institucional da AB Solutions — Especialistas em TOTVS Fluig e integrações com ERPs (RM, Protheus, Datasul).",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "compression": "^1.7.4",
+    "express": "^4.19.2"
+  }
+}
