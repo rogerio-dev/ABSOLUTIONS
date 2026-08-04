@@ -19,6 +19,19 @@ app.use((req, res, next) => {
   next();
 });
 
+// Redireciona para o domínio oficial, evitando que o endereço interno da
+// Railway seja indexado como conteúdo duplicado. Fica inativo enquanto a
+// variável CANONICAL_HOST não estiver definida.
+const CANONICAL_HOST = process.env.CANONICAL_HOST;
+
+app.use((req, res, next) => {
+  const host = req.headers.host;
+  if (!CANONICAL_HOST || !host || host === CANONICAL_HOST || host.startsWith('localhost')) {
+    return next();
+  }
+  res.redirect(301, `https://${CANONICAL_HOST}${req.originalUrl}`);
+});
+
 app.use(
   express.static(path.join(__dirname, 'public'), {
     extensions: ['html'],

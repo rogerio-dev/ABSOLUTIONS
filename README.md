@@ -23,6 +23,14 @@ Acesse `http://localhost:3000`.
 2. Na Railway: **New Project → Deploy from GitHub repo** e selecione o repositório.
 3. A Railway detecta o `package.json` automaticamente e roda `npm start`. A porta já é lida de `process.env.PORT` — nenhuma configuração extra é necessária.
 4. Em **Settings → Networking**, gere o domínio público (ou conecte seu domínio próprio).
+5. Mantenha o **auto deploy ligado** (Settings → *Enable* em "Auto deploy"). Sem isso, o botão *Redeploy* apenas reconstrói o commit já publicado e o código novo nunca vai ao ar.
+
+### Variáveis de ambiente
+
+| Variável | Obrigatória | Descrição |
+|---|---|---|
+| `PORT` | não | Definida automaticamente pela Railway. Localmente cai em `3000`. |
+| `CANONICAL_HOST` | não | Domínio oficial, ex.: `www.absolutionsconsultoria.com.br`. Quando definida, qualquer acesso por outro endereço (como o `*.up.railway.app`) é redirecionado com 301 para ela, evitando conteúdo duplicado no Google. **Só defina depois que o domínio próprio estiver funcionando** — antes disso, você perderia o acesso de preview pelo endereço da Railway. |
 
 ## Domínio
 
