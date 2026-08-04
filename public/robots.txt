@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://www.absolutions.com.br/sitemap.xml
+Sitemap: https://absolutionsconsultoria.com.br/sitemap.xml

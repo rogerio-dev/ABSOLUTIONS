@@ -24,17 +24,19 @@ Acesse `http://localhost:3000`.
 3. A Railway detecta o `package.json` automaticamente e roda `npm start`. A porta já é lida de `process.env.PORT` — nenhuma configuração extra é necessária.
 4. Em **Settings → Networking**, gere o domínio público (ou conecte seu domínio próprio).
 
-## Antes de publicar — ajustes obrigatórios
+## Domínio
 
-O site usa `https://www.absolutions.com.br` como **domínio provisório**. Quando tiver o domínio real, troque nos arquivos:
+O domínio oficial é **`https://absolutionsconsultoria.com.br`** (sem `www`), apontado para a Railway via DNS no HostGator.
 
-- `public/index.html` — tag `<link rel="canonical">`, metas `og:url`, `og:image`, `twitter:image` e os dois blocos JSON-LD
+Se algum dia o domínio mudar, os pontos a atualizar são:
+
+- `public/index.html` — tag `<link rel="canonical">`, metas `og:url`, `og:image`, `twitter:image` e o `url` do JSON-LD
 - `public/robots.txt` — linha do `Sitemap`
 - `public/sitemap.xml` — tag `<loc>`
 
-Outros pontos:
+## Pendências
 
-- **Imagem de compartilhamento (Open Graph)**: crie uma imagem `public/img/og-cover.png` (1200×630px) com a marca — é a imagem que aparece ao compartilhar o link no WhatsApp/LinkedIn.
+- **Imagem de compartilhamento (Open Graph)**: falta criar `public/img/og-cover.png` (1200×630px). Enquanto ela não existir, links compartilhados no WhatsApp/LinkedIn aparecem sem imagem de destaque.
 - **Números do hero**: os destaques da seção inicial (“100% foco em Fluig” etc.) são editáveis em `public/index.html` — ajuste conforme a realidade da empresa (anos de experiência, nº de projetos etc.).
 - **Redes sociais**: quando tiver LinkedIn/Instagram, adicione as URLs no array `sameAs` do JSON-LD e no rodapé.
 - **Google Search Console**: após publicar, cadastre o site e envie o `sitemap.xml` — acelera a indexação.
