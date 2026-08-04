@@ -26,7 +26,9 @@ Acesse `http://localhost:3000`.
 
 ## Domínio
 
-O domínio oficial é **`https://absolutionsconsultoria.com.br`** (sem `www`), apontado para a Railway via DNS no HostGator.
+O domínio oficial é **`https://www.absolutionsconsultoria.com.br`**, apontado para a Railway por um CNAME no `www` (DNS no HostGator).
+
+> **Atenção:** o registro `A` do domínio raiz (`@`) aponta para o HostGator e **não deve ser alterado** — o registro `MX` do e-mail resolve através dele. Apontar a raiz para a Railway derrubaria o e-mail do domínio. Por isso o site usa `www`, com redirecionamento 301 da raiz para `www` configurado no cPanel.
 
 Se algum dia o domínio mudar, os pontos a atualizar são:
 
