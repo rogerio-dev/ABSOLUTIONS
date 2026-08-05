@@ -50,7 +50,7 @@ Se algum dia o domínio mudar, os pontos a atualizar são:
 - **Números do hero**: os destaques da seção inicial (“100% foco em Fluig” etc.) são editáveis em `public/index.html` — ajuste conforme a realidade da empresa (anos de experiência, nº de projetos etc.).
 - **Redes sociais**: quando tiver LinkedIn/Instagram, adicione as URLs no array `sameAs` do JSON-LD e no rodapé.
 - **Google Search Console**: após publicar, cadastre o site e envie o `sitemap.xml` — acelera a indexação.
-- **Cache dos assets**: `styles.css` e `main.js` são referenciados com `?v=1.1.0` no HTML. Sempre que alterar CSS ou JS, **incremente essa versão** nos `<link>`/`<script>` de `index.html` e `404.html` — senão visitantes recorrentes continuam vendo a versão antiga em cache (o servidor manda cache de 7 dias).
+- **Cache dos assets**: `styles.css` e `main.js` são referenciados com um sufixo `?v=X.Y.Z` no HTML. Sempre que alterar CSS ou JS, **incremente essa versão** nos `<link>`/`<script>` de `index.html` e `404.html` — senão visitantes recorrentes continuam vendo a versão antiga em cache (o servidor manda cache de 7 dias).
 
 ## Estrutura
 

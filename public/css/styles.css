@@ -23,7 +23,11 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
 
 body {
   font-family: var(--font-body);
@@ -403,7 +407,8 @@ h1 {
 /* ---------- Cards de serviços ---------- */
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  /* min() evita que a largura mínima estoure o container em telas estreitas */
+  grid-template-columns: repeat(auto-fit, minmax(min(290px, 100%), 1fr));
   gap: 1.3rem;
 }
 
@@ -438,7 +443,7 @@ h1 {
 /* ---------- Integrações ERP ---------- */
 .erp-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
   gap: 1.3rem;
 }
 
@@ -486,6 +491,11 @@ h1 {
   gap: 3.5rem;
   align-items: center;
 }
+
+/* Itens de grid não encolhem abaixo do conteúdo sem isto — a janela de
+   código empurraria a largura da página inteira no mobile. */
+.split-text,
+.split-visual { min-width: 0; }
 
 .check-list {
   list-style: none;
@@ -550,7 +560,7 @@ h1 {
 /* ---------- Processo (steps) ---------- */
 .steps {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
   gap: 1.3rem;
   list-style: none;
   counter-reset: step;
@@ -769,7 +779,9 @@ h1 {
   .footer-inner { grid-template-columns: 1fr; gap: 1.8rem; }
 }
 
-@media (max-width: 760px) {
+/* O menu completo só cabe com folga a partir de ~860px: abaixo disso,
+   marca e navegação encostam uma na outra. */
+@media (max-width: 860px) {
   .nav-toggle { display: flex; }
 
   .nav-list {
@@ -796,4 +808,92 @@ h1 {
 
   .hero-stats { gap: 1.4rem 2rem; }
   .section { padding-block: 4rem; }
+
+  /* Alvos de toque de no mínimo 44px, recomendação de acessibilidade em telas de toque.
+     O padding vai no link, não no <li>, senão a área clicável não cresce junto. */
+  .nav-list li { padding-block: 0; }
+  .nav-list a:not(.btn) {
+    display: flex;
+    align-items: center;
+    min-height: 46px;
+    font-size: 1rem;
+  }
+  .nav-list .btn { padding-block: .85rem; margin-top: .5rem; }
+
+  .nav-toggle {
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    margin-right: -.4rem;
+  }
+}
+
+/* ---------- Smartphones ---------- */
+@media (max-width: 560px) {
+  .container,
+  .container-narrow { width: min(1140px, 100% - 2rem); }
+
+  .section { padding-block: 3.25rem; }
+  .section-sub { margin-bottom: 1.8rem; }
+
+  /* CTAs ocupam a linha inteira: alvo de toque generoso e sem quebra estranha */
+  .hero-actions { flex-direction: column; align-items: stretch; gap: .75rem; }
+  .hero-actions .btn,
+  .section-cta .btn,
+  .cta-content .btn,
+  .offer-main .btn { width: 100%; justify-content: center; }
+
+  .btn-lg { padding: .95rem 1.25rem; font-size: 1rem; }
+
+  .hero { padding-top: 4.5rem; min-height: auto; }
+  .hero-content { padding-block: 3rem 3.5rem; }
+  .hero-badge { font-size: .8rem; padding: .4rem .85rem; }
+
+  /* Indicadores empilhados, cada um em sua linha e legível */
+  .hero-stats {
+    flex-direction: column;
+    gap: .9rem;
+    margin-top: 2.4rem;
+    padding-top: 1.4rem;
+  }
+  .hero-stats li { flex-direction: row; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
+  .hero-stats strong { font-size: 1rem; }
+
+  .card,
+  .erp-card,
+  .step { padding: 1.5rem 1.3rem; }
+
+  .card-icon { width: 46px; height: 46px; margin-bottom: .9rem; }
+  .card-icon svg { width: 24px; height: 24px; }
+
+  .offer-card { padding: 1.75rem 1.3rem; }
+  .offer-rules { padding-top: 1.5rem; }
+  .offer-badge { font-size: .78rem; }
+
+  /* Código: fonte menor e rolagem horizontal com inércia, sem empurrar a página */
+  .code-window { font-size: .72rem; }
+  .code-window pre {
+    padding: 1rem;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+
+  .steps { gap: 1rem; }
+  .step-num { font-size: 1.65rem; margin-bottom: .5rem; }
+
+  .faq-item summary { padding: 1rem 2.75rem 1rem 1.1rem; font-size: .97rem; }
+  .faq-item p { padding: 0 1.1rem 1.1rem; }
+
+  .cta-final { padding-block: 4rem; }
+
+  .footer-bottom { flex-direction: column; gap: .35rem; }
+
+  /* Respeita a barra de gestos do iPhone e não cobre conteúdo */
+  .wa-float {
+    width: 54px;
+    height: 54px;
+    right: 1rem;
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
 }
