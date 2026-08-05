@@ -159,15 +159,37 @@ h1 {
 .brand {
   display: inline-flex;
   align-items: center;
-  color: var(--text);
+  color: #fff;
   padding-block: .35rem;
-}
-.brand-name {
-  font-family: var(--font-head);
   font-size: 1.28rem;
-  font-weight: 600;
+}
+
+/* Losango: quadrado girado 45°, dimensionado em em para acompanhar a fonte */
+.brand-diamond {
+  position: relative;
+  flex: none;
+  width: 1.95em;
+  height: 1.95em;
+}
+.brand-diamond::before {
+  content: "";
+  position: absolute;
+  inset: .285em;
+  border: .095em solid var(--accent);
+  transform: rotate(45deg);
+}
+
+/* O texto passa por cima da linha do losango, como na marca */
+.brand-name {
+  position: relative;
+  z-index: 1;
+  margin-left: -.78em;
+  font-family: var(--font-head);
+  font-size: 1em;
+  font-weight: 800;
   letter-spacing: -.01em;
 }
+.brand-name strong { font-weight: 800; color: var(--accent); }
 .brand-name strong { font-weight: 800; color: var(--accent); }
 
 .nav-list {
@@ -740,6 +762,7 @@ h1 {
   padding-bottom: 2.5rem;
 }
 
+.footer-brand .brand { font-size: 1.15rem; }
 .footer-brand p {
   color: var(--muted);
   font-size: .92rem;
