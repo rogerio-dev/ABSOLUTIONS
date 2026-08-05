@@ -34,7 +34,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="/css/styles.css?v=1.2.3">
+  <link rel="stylesheet" href="/css/styles.css?v=1.3.1">
 
   <!-- Dados estruturados: empresa -->
   <script type="application/ld+json">
@@ -316,17 +316,50 @@
             <li><strong>Comunicação direta</strong> — fale com quem executa o projeto, sem camadas de intermediários.</li>
           </ul>
         </div>
-        <div class="split-visual reveal" aria-hidden="true">
-          <div class="code-window">
-            <div class="code-dots"><span></span><span></span><span></span></div>
-            <pre><code><span class="c-kw">function</span> <span class="c-fn">afterTaskComplete</span>(colleagueId, nextSequenceId, userList) {
-  <span class="c-cm">// Integra a solicitação aprovada ao ERP</span>
-  <span class="c-kw">var</span> resultado = integracaoERP.<span class="c-fn">efetivar</span>(hAPI.<span class="c-fn">getValue</span>(<span class="c-st">"nrSolicitacao"</span>));
-  <span class="c-kw">if</span> (resultado.sucesso) {
-    hAPI.<span class="c-fn">setCardValue</span>(<span class="c-st">"status"</span>, <span class="c-st">"INTEGRADO"</span>);
-  }
-}</code></pre>
-          </div>
+        <div class="split-visual reveal">
+          <figure class="bpmn">
+            <svg viewBox="0 0 400 220" role="img" aria-labelledby="bpmn-titulo bpmn-desc">
+              <title id="bpmn-titulo">Fluxo de um processo automatizado no Fluig</title>
+              <desc id="bpmn-desc">A solicitação é aberta, segue para aprovação e, quando aprovada, é integrada automaticamente ao ERP.</desc>
+
+              <defs>
+                <marker id="bpmn-seta" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                  <path class="bpmn-arrow" d="M0 0 L10 5 L0 10 z"/>
+                </marker>
+              </defs>
+
+              <!-- Conectores -->
+              <path class="bpmn-flow" d="M45 48 H70" marker-end="url(#bpmn-seta)"/>
+              <path class="bpmn-flow" d="M191 48 H216" marker-end="url(#bpmn-seta)"/>
+              <path class="bpmn-flow" d="M277 71 V94" marker-end="url(#bpmn-seta)"/>
+              <path class="bpmn-flow" d="M252 120 H216" marker-end="url(#bpmn-seta)"/>
+              <path class="bpmn-flow" d="M156 143 V170" marker-end="url(#bpmn-seta)"/>
+
+              <!-- Início -->
+              <circle class="bpmn-event bpmn-step" cx="30" cy="48" r="14"/>
+
+              <!-- Solicitação -->
+              <rect class="bpmn-node bpmn-step bpmn-d1" x="72" y="26" width="118" height="44" rx="9"/>
+              <text class="bpmn-label" x="131" y="49">Solicitação</text>
+
+              <!-- Aprovação -->
+              <rect class="bpmn-node bpmn-step bpmn-d2" x="218" y="26" width="118" height="44" rx="9"/>
+              <text class="bpmn-label" x="277" y="49">Aprovação</text>
+
+              <!-- Gateway -->
+              <polygon class="bpmn-node bpmn-step bpmn-d3" points="277,95 302,120 277,145 252,120"/>
+              <text class="bpmn-small" x="343" y="112">Aprovado?</text>
+              <text class="bpmn-small" x="234" y="112">sim</text>
+
+              <!-- Integração -->
+              <rect class="bpmn-node bpmn-step bpmn-d4" x="97" y="98" width="118" height="44" rx="9"/>
+              <text class="bpmn-label" x="156" y="121">Integração ERP</text>
+
+              <!-- Fim -->
+              <circle class="bpmn-event bpmn-end bpmn-step bpmn-d5" cx="156" cy="188" r="15"/>
+            </svg>
+            <figcaption>Da solicitação à baixa no ERP, sem ninguém digitar duas vezes.</figcaption>
+          </figure>
         </div>
       </div>
     </section>

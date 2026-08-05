@@ -521,41 +521,80 @@ h1 {
   background: rgba(34, 211, 238, .12) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12.5l4 4 8-9' fill='none' stroke='%2322d3ee' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/13px no-repeat;
 }
 
-.code-window {
-  background: #0a1020;
+/* ---------- Diagrama BPMN animado ---------- */
+.bpmn {
+  margin: 0;
+  background: linear-gradient(160deg, var(--surface) 0%, var(--surface-2) 100%);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  overflow: hidden;
-  font-size: .8rem;
+  padding: 1.7rem 1.4rem 1.3rem;
 }
-.code-dots {
-  display: flex;
-  gap: 7px;
-  padding: .85rem 1rem;
-  border-bottom: 1px solid var(--border);
-}
-.code-dots span {
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  background: #2c3a5c;
-}
-.code-dots span:first-child { background: #f87171; }
-.code-dots span:nth-child(2) { background: #fbbf24; }
-.code-dots span:nth-child(3) { background: #34d399; }
 
-.code-window pre {
-  padding: 1.2rem 1.3rem;
-  overflow-x: auto;
-  line-height: 1.7;
-  color: #c7d4ec;
+/* O SVG escala sozinho pelo viewBox: nunca estoura a largura do container */
+.bpmn svg { display: block; width: 100%; height: auto; }
+
+.bpmn figcaption {
+  margin-top: 1.1rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: .86rem;
 }
-.code-window code { font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace; }
-.c-kw { color: #93c5fd; }
-.c-fn { color: #22d3ee; }
-.c-st { color: #86efac; }
-.c-cm { color: #64748b; font-style: italic; }
+
+.bpmn-node {
+  fill: var(--surface-2);
+  stroke: var(--border);
+  stroke-width: 1.6;
+}
+
+.bpmn-event {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 2;
+}
+.bpmn-end { stroke-width: 3.4; }
+
+.bpmn-label {
+  fill: var(--text);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  text-anchor: middle;
+}
+
+.bpmn-small {
+  fill: var(--muted);
+  font-family: var(--font-body);
+  font-size: 9.5px;
+  text-anchor: middle;
+}
+
+.bpmn-flow {
+  fill: none;
+  stroke: rgba(34, 211, 238, .45);
+  stroke-width: 1.6;
+  stroke-dasharray: 5 5;
+  animation: bpmnFlow 1s linear infinite;
+}
+
+.bpmn-arrow { fill: rgba(34, 211, 238, .7); }
+
+@keyframes bpmnFlow {
+  to { stroke-dashoffset: -10; }
+}
+
+/* O destaque percorre as etapas na ordem, como um token atravessando o fluxo */
+.bpmn-step { animation: bpmnPulse 6s linear infinite; }
+.bpmn-d1 { animation-delay: 1s; }
+.bpmn-d2 { animation-delay: 2s; }
+.bpmn-d3 { animation-delay: 3s; }
+.bpmn-d4 { animation-delay: 4s; }
+.bpmn-d5 { animation-delay: 5s; }
+
+@keyframes bpmnPulse {
+  0%, 13% { stroke: var(--accent); }
+  22%, 100% { stroke: var(--border); }
+}
 
 /* ---------- Processo (steps) ---------- */
 .steps {
@@ -770,7 +809,8 @@ h1 {
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .reveal { opacity: 1; transform: none; transition: none; }
-  .cta-orbs span, .wa-float, .pulse-dot { animation: none; }
+  .cta-orbs span, .wa-float, .pulse-dot,
+  .bpmn-flow, .bpmn-step { animation: none; }
 }
 
 /* ---------- Responsivo ---------- */
@@ -871,13 +911,12 @@ h1 {
   .offer-rules { padding-top: 1.5rem; }
   .offer-badge { font-size: .78rem; }
 
-  /* Código: fonte menor e rolagem horizontal com inércia, sem empurrar a página */
-  .code-window { font-size: .72rem; }
-  .code-window pre {
-    padding: 1rem;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-x: contain;
-  }
+  /* O SVG encolhe junto com a tela, então os rótulos precisam de mais corpo
+     em unidades do viewBox para continuarem legíveis no celular. */
+  .bpmn { padding: 1.3rem .7rem 1rem; }
+  .bpmn figcaption { font-size: .82rem; margin-top: .9rem; }
+  .bpmn-label { font-size: 14.5px; }
+  .bpmn-small { font-size: 11px; }
 
   .steps { gap: 1rem; }
   .step-num { font-size: 1.65rem; margin-bottom: .5rem; }
