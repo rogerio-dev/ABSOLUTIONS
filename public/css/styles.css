@@ -159,11 +159,15 @@ h1 {
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: .6rem;
   color: var(--text);
+  padding-block: .35rem;
 }
-.brand-mark { width: 38px; height: 38px; }
-.brand-name { font-family: var(--font-head); font-size: 1.15rem; font-weight: 600; }
+.brand-name {
+  font-family: var(--font-head);
+  font-size: 1.28rem;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
 .brand-name strong { font-weight: 800; color: var(--accent); }
 
 .nav-list {
@@ -825,8 +829,9 @@ h1 {
   .nav-toggle { display: flex; }
 
   .nav-list {
-    position: fixed;
-    top: 62px;
+    /* Ancorado ao rodapé do cabeçalho: acompanha a altura dele sem valor fixo */
+    position: absolute;
+    top: 100%;
     inset-inline: 0;
     flex-direction: column;
     align-items: stretch;
