@@ -159,38 +159,27 @@ h1 {
 .brand {
   display: inline-flex;
   align-items: center;
+  gap: .3rem;
   color: #fff;
-  padding-block: .35rem;
+  padding-block: .25rem;
   font-size: 1.28rem;
 }
 
-/* Losango: quadrado girado 45°, dimensionado em em para acompanhar a fonte */
-.brand-diamond {
-  position: relative;
+/* Símbolo: losango aberto à direita, fechado visualmente pelo B.
+   Altura em em para a proporção com o texto se manter em qualquer tamanho. */
+.brand-mark {
+  height: 2.5em;
+  width: auto;
   flex: none;
-  width: 1.95em;
-  height: 1.95em;
-}
-.brand-diamond::before {
-  content: "";
-  position: absolute;
-  inset: .285em;
-  border: .095em solid var(--accent);
-  transform: rotate(45deg);
 }
 
-/* O texto passa por cima da linha do losango, como na marca */
 .brand-name {
-  position: relative;
-  z-index: 1;
-  margin-left: -.78em;
   font-family: var(--font-head);
   font-size: 1em;
   font-weight: 800;
   letter-spacing: -.01em;
+  color: var(--accent);
 }
-.brand-name strong { font-weight: 800; color: var(--accent); }
-.brand-name strong { font-weight: 800; color: var(--accent); }
 
 .nav-list {
   display: flex;
@@ -941,6 +930,10 @@ h1 {
 
   /* O SVG encolhe junto com a tela, então os rótulos precisam de mais corpo
      em unidades do viewBox para continuarem legíveis no celular. */
+  /* Cabeçalho fixo não pode roubar tela no celular */
+  .brand { font-size: 1.15rem; }
+  .brand-mark { height: 2.15em; }
+
   .bpmn { padding: 1.3rem .7rem 1rem; }
   .bpmn figcaption { font-size: .82rem; margin-top: .9rem; }
   .bpmn-label { font-size: 14.5px; }
