@@ -3,3 +3,6 @@ node_modules/
 *.log
 .DS_Store
 Thumbs.db
+
+# Fontes baixadas automaticamente pelo gerador de material de marketing
+marketing/fonts/

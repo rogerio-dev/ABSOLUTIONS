@@ -46,7 +46,6 @@ Se algum dia o domínio mudar, os pontos a atualizar são:
 
 ## Pendências
 
-- **Imagem de compartilhamento (Open Graph)**: falta criar `public/img/og-cover.png` (1200×630px). Enquanto ela não existir, links compartilhados no WhatsApp/LinkedIn aparecem sem imagem de destaque.
 - **Números do hero**: os destaques da seção inicial (“100% foco em Fluig” etc.) são editáveis em `public/index.html` — ajuste conforme a realidade da empresa (anos de experiência, nº de projetos etc.).
 - **Redes sociais**: quando tiver LinkedIn/Instagram, adicione as URLs no array `sameAs` do JSON-LD e no rodapé.
 - **Google Search Console**: após publicar, cadastre o site e envie o `sitemap.xml` — acelera a indexação.
@@ -57,6 +56,7 @@ Se algum dia o domínio mudar, os pontos a atualizar são:
 ```
 ├── server.js            # Servidor Express
 ├── package.json
+├── marketing/           # Peças em PNG e o gerador delas (ver README próprio)
 └── public/
     ├── index.html       # Página única (landing)
     ├── 404.html

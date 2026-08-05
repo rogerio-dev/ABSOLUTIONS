@@ -1,0 +1,8 @@
+﻿{
+  "name": "ab-solutions-marketing",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Geracao das pecas de marketing em PNG a partir de SVG",
+  "scripts": { "gerar": "node gerar-assets.js" },
+  "dependencies": { "@resvg/resvg-js": "^2.6.2" }
+}
