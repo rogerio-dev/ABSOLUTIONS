@@ -14,6 +14,7 @@ Limpezas aplicadas:
     ocorrências, que é a de maior confiança
 """
 
+import re
 import sys
 import unicodedata
 from collections import defaultdict
@@ -110,6 +111,10 @@ def carregar(caminho: str):
         registro = {
             "codigo_t": (cod or "").strip(),
             "cliente": cliente,
+            # Alguns nomes vêm prefixados com o código do cliente ("100103-DINNI
+            # CALCADOS LTDA"). Guardamos a versão sem prefixo para casar com o
+            # cadastro que já existe no CRM, onde o prefixo normalmente não está.
+            "cliente_alt": re.sub(r"^\s*\d{3,}\s*-\s*", "", cliente).strip(),
             "nome": nome,
             "telefone": telefone,
             "tipo": (tipo or "").strip(),
@@ -126,15 +131,29 @@ def carregar(caminho: str):
     return list(melhores.values()), descartes, len(linhas)
 
 
+NOTA = (
+    "'Telefone ' || lower(coalesce(nullif(i.tipo, ''), 'não classificado'))\n"
+    "       || ' da assinatura em chamados (confiança ' || lower(coalesce(nullif(i.confianca, ''), 'não informada')) || ').'"
+)
+
+
 def gerar_sql(registros: list[dict]) -> str:
     partes = [
-        "-- Importação de contatos extraídos do Zendesk para o CRM da AB Solutions.",
-        "-- Idempotente: rodar de novo não duplica clientes nem contatos.",
+        "-- Enriquece o CRM com os telefones extraídos das assinaturas no Zendesk.",
+        "--",
+        "-- A base já tem clientes e contatos vindos de outra origem, então a ordem importa:",
+        "--   1. casa cada linha com o cliente que já existe (por código T ou nome)",
+        "--   2. casa com o contato que já existe (por e-mail, depois por nome)",
+        "--   3. preenche o telefone de quem já está cadastrado",
+        "--   4. só então insere quem realmente não existe",
+        "--",
+        "-- Idempotente: rodar de novo não duplica nem sobrescreve telefone já preenchido.",
         "",
         "BEGIN;",
         "",
         "CREATE TEMP TABLE _import (",
-        "  codigo_t text, cliente text, nome text, telefone text, tipo text,",
+        "  id serial PRIMARY KEY,",
+        "  codigo_t text, cliente text, cliente_alt text, nome text, telefone text, tipo text,",
         "  email text, ocorrencias integer, confianca text, ultima timestamptz",
         ") ON COMMIT DROP;",
         "",
@@ -142,13 +161,16 @@ def gerar_sql(registros: list[dict]) -> str:
 
     for inicio in range(0, len(registros), LOTE):
         bloco = registros[inicio : inicio + LOTE]
-        partes.append("INSERT INTO _import (codigo_t, cliente, nome, telefone, tipo, email, ocorrencias, confianca, ultima) VALUES")
+        partes.append(
+            "INSERT INTO _import (codigo_t, cliente, cliente_alt, nome, telefone, tipo, email, ocorrencias, confianca, ultima) VALUES"
+        )
         valores = [
             "  ("
             + ", ".join(
                 [
                     aspas(r["codigo_t"]),
                     aspas(r["cliente"]),
+                    aspas(r["cliente_alt"]),
                     aspas(r["nome"]),
                     aspas(r["telefone"]),
                     aspas(r["tipo"]),
@@ -164,50 +186,97 @@ def gerar_sql(registros: list[dict]) -> str:
         partes.append(",\n".join(valores) + ";")
         partes.append("")
 
-    partes.extend(
-        [
-            "-- Cria os clientes que ainda não existem, comparando pelo nome normalizado.",
-            "INSERT INTO public.clients (nome, codigo_t, observacoes)",
-            "SELECT DISTINCT ON (lower(i.cliente))",
-            "       i.cliente,",
-            "       NULLIF(i.codigo_t, ''),",
-            "       'Importado da base de chamados Zendesk.'",
-            "FROM _import i",
-            "WHERE NOT EXISTS (",
-            "  SELECT 1 FROM public.clients c WHERE lower(c.nome) = lower(i.cliente)",
-            ")",
-            "ORDER BY lower(i.cliente), i.codigo_t NULLS LAST;",
-            "",
-            "-- Preenche o código T em clientes que já existiam sem ele.",
-            "UPDATE public.clients c",
-            "SET codigo_t = sub.codigo_t",
-            "FROM (",
-            "  SELECT DISTINCT ON (lower(cliente)) lower(cliente) AS chave, NULLIF(codigo_t, '') AS codigo_t",
-            "  FROM _import WHERE NULLIF(codigo_t, '') IS NOT NULL",
-            "  ORDER BY lower(cliente), codigo_t",
-            ") sub",
-            "WHERE lower(c.nome) = sub.chave AND c.codigo_t IS NULL;",
-            "",
-            "-- Insere os contatos, evitando repetir pessoa com o mesmo telefone no mesmo cliente.",
-            "WITH clientes AS (",
-            "  SELECT DISTINCT ON (lower(nome)) lower(nome) AS chave, id FROM public.clients ORDER BY lower(nome), created_at",
-            ")",
-            "INSERT INTO public.contacts (client_id, nome, email, telefone, tickets, ultima_interacao, observacoes)",
-            "SELECT cl.id, i.nome, NULLIF(i.email, ''), i.telefone, i.ocorrencias, i.ultima,",
-            "       'Telefone ' || lower(coalesce(nullif(i.tipo, ''), 'não classificado'))",
-            "       || ' extraído de assinatura em chamados. Confiança: ' || lower(coalesce(nullif(i.confianca, ''), 'não informada')) || '.'",
-            "FROM _import i",
-            "JOIN clientes cl ON cl.chave = lower(i.cliente)",
-            "WHERE NOT EXISTS (",
-            "  SELECT 1 FROM public.contacts ct",
-            "  WHERE ct.client_id = cl.id",
-            "    AND lower(ct.nome) = lower(i.nome)",
-            "    AND ct.telefone = i.telefone",
-            ");",
-            "",
-            "COMMIT;",
-            "",
-        ]
+    partes.append(
+        f"""-- ---------------------------------------------------------------
+-- 1. Casa cada linha com o cliente que já existe no CRM.
+--    Tenta pelo código T, pelo nome, e pelo nome sem o prefixo numérico.
+-- ---------------------------------------------------------------
+CREATE TEMP TABLE _cli ON COMMIT DROP AS
+SELECT i.id AS imp_id,
+       (SELECT c.id FROM public.clients c
+         WHERE (NULLIF(i.codigo_t, '') IS NOT NULL AND lower(c.codigo_t) = lower(i.codigo_t))
+            OR lower(c.nome) = lower(i.cliente)
+            OR lower(c.nome) = lower(i.cliente_alt)
+         ORDER BY (lower(c.codigo_t) = lower(NULLIF(i.codigo_t, ''))) DESC NULLS LAST, c.created_at
+         LIMIT 1) AS client_id
+FROM _import i;
+
+-- 2. Cria só os clientes que realmente não existem.
+INSERT INTO public.clients (nome, codigo_t, observacoes)
+SELECT DISTINCT ON (lower(i.cliente))
+       i.cliente, NULLIF(i.codigo_t, ''), 'Importado da base de chamados Zendesk.'
+FROM _import i
+JOIN _cli m ON m.imp_id = i.id
+WHERE m.client_id IS NULL
+ORDER BY lower(i.cliente), i.codigo_t NULLS LAST;
+
+-- Refaz o vínculo para as linhas cujo cliente acabou de ser criado.
+UPDATE _cli m
+SET client_id = (SELECT c.id FROM public.clients c
+                  WHERE lower(c.nome) = lower(i.cliente) ORDER BY c.created_at LIMIT 1)
+FROM _import i
+WHERE i.id = m.imp_id AND m.client_id IS NULL;
+
+-- Completa o código T de clientes que já existiam sem ele.
+UPDATE public.clients c
+SET codigo_t = sub.codigo_t, updated_at = now()
+FROM (SELECT DISTINCT ON (m.client_id) m.client_id, NULLIF(i.codigo_t, '') AS codigo_t
+        FROM _import i JOIN _cli m ON m.imp_id = i.id
+       WHERE NULLIF(i.codigo_t, '') IS NOT NULL
+       ORDER BY m.client_id, i.ocorrencias DESC) sub
+WHERE c.id = sub.client_id AND c.codigo_t IS NULL;
+
+-- ---------------------------------------------------------------
+-- 3. Casa cada linha com o contato que já existe: e-mail primeiro, nome depois.
+-- ---------------------------------------------------------------
+CREATE TEMP TABLE _ct ON COMMIT DROP AS
+SELECT i.id AS imp_id, m.client_id,
+       (SELECT ct.id FROM public.contacts ct
+         WHERE ct.client_id = m.client_id
+           AND ((NULLIF(i.email, '') IS NOT NULL AND lower(ct.email) = lower(i.email))
+                OR lower(ct.nome) = lower(i.nome))
+         ORDER BY (lower(ct.email) = lower(NULLIF(i.email, ''))) DESC NULLS LAST, ct.created_at
+         LIMIT 1) AS contact_id
+FROM _import i
+JOIN _cli m ON m.imp_id = i.id;
+
+-- 4. Preenche o telefone de quem já estava cadastrado sem ele.
+--    Nunca sobrescreve telefone existente.
+UPDATE public.contacts ct
+SET telefone = sub.telefone,
+    observacoes = btrim(coalesce(nullif(ct.observacoes, '') || ' ', '') || sub.nota),
+    tickets = GREATEST(coalesce(ct.tickets, 0), sub.ocorrencias),
+    ultima_interacao = GREATEST(ct.ultima_interacao, sub.ultima),
+    updated_at = now()
+FROM (SELECT DISTINCT ON (x.contact_id)
+             x.contact_id, i.telefone, i.ocorrencias, i.ultima,
+             {NOTA} AS nota
+        FROM _ct x JOIN _import i ON i.id = x.imp_id
+       WHERE x.contact_id IS NOT NULL
+       ORDER BY x.contact_id, i.ocorrencias DESC) sub
+WHERE ct.id = sub.contact_id AND ct.telefone IS NULL;
+
+-- 5. Insere apenas quem não existe em lugar nenhum.
+INSERT INTO public.contacts (client_id, nome, email, telefone, tickets, ultima_interacao, observacoes)
+SELECT DISTINCT ON (x.client_id, lower(i.nome))
+       x.client_id, i.nome, NULLIF(i.email, ''), i.telefone, i.ocorrencias, i.ultima,
+       {NOTA}
+FROM _ct x
+JOIN _import i ON i.id = x.imp_id
+WHERE x.contact_id IS NULL AND x.client_id IS NOT NULL
+ORDER BY x.client_id, lower(i.nome), i.ocorrencias DESC;
+
+-- ---------------------------------------------------------------
+-- 6. Conferência antes de confirmar.
+-- ---------------------------------------------------------------
+SELECT (SELECT count(*) FROM public.clients)                                AS clientes,
+       (SELECT count(*) FROM public.contacts)                               AS contatos,
+       (SELECT count(*) FROM public.contacts WHERE telefone IS NOT NULL)    AS contatos_com_telefone,
+       (SELECT count(*) FROM _ct WHERE contact_id IS NOT NULL)              AS linhas_casadas_com_contato_existente,
+       (SELECT count(*) FROM _ct WHERE contact_id IS NULL)                  AS linhas_que_viraram_contato_novo;
+
+COMMIT;
+"""
     )
     return "\n".join(partes)
 
