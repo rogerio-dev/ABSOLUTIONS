@@ -1,81 +1,88 @@
-# AB Solutions — Site Institucional
+# AB Solutions
 
-Site da **AB Solutions**, consultoria especializada em **TOTVS Fluig** e integrações com os ERPs **RM, Protheus e Datasul**.
+Site institucional, CRM interno e portal do cliente — **uma única aplicação**, um domínio, um deploy.
+
+## Como está organizado
+
+| Rota | O que é | Acesso |
+|---|---|---|
+| `/` | Site institucional: serviços, oferta do processo gratuito, FAQ | público |
+| `/auth` | Login e cadastro | público |
+| `/painel`, `/funil`, `/clientes`, `/contratos`, `/projetos`, `/agenda`, `/equipe` | CRM interno | equipe |
+| `/portal` | Portal onde o cliente acompanha contratos e projetos | cliente |
+
+O botão **Acesso**, no canto superior direito do site, leva direto à tela de login — sem sair da aplicação e sem recarregar a página. Quem já está autenticado vê **Painel** no lugar.
 
 ## Stack
 
-- **Front-end**: HTML5 + CSS3 + JavaScript puro (sem frameworks — carregamento rápido e SEO máximo)
-- **Back-end**: Node.js + Express (serve os arquivos estáticos com compressão gzip e cabeçalhos de segurança/cache)
-- **Deploy**: pronto para Railway (ou qualquer host Node)
+- **TanStack Start** (React 19) com renderização no servidor — o site institucional é servido como HTML pronto, então continua totalmente indexável
+- **Nitro** como runtime do servidor
+- **Supabase** para banco e autenticação
+- **Tailwind CSS 4** com Radix UI
 
 ## Rodando localmente
 
 ```bash
 npm install
+npm run dev
+```
+
+## Build e produção
+
+```bash
+npm install
+npm run build
 npm start
 ```
 
-Acesse `http://localhost:3000`.
+O build gera um servidor Node em `.output/server/index.mjs`, que roda em qualquer host Node. A porta vem de `PORT`. Para publicar em Cloudflare Workers, defina `NITRO_PRESET=cloudflare-module` antes do build.
 
-## Deploy na Railway
+## Variáveis de ambiente
 
-1. Suba o projeto para um repositório no GitHub.
-2. Na Railway: **New Project → Deploy from GitHub repo** e selecione o repositório.
-3. A Railway detecta o `package.json` automaticamente e roda `npm start`. A porta já é lida de `process.env.PORT` — nenhuma configuração extra é necessária.
-4. Em **Settings → Networking**, gere o domínio público (ou conecte seu domínio próprio).
-5. Mantenha o **auto deploy ligado** (Settings → *Enable* em "Auto deploy"). Sem isso, o botão *Redeploy* apenas reconstrói o commit já publicado e o código novo nunca vai ao ar.
+| Variável | Onde é usada |
+|---|---|
+| `VITE_SUPABASE_URL` | navegador (injetada no build) |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | navegador (injetada no build) |
+| `SUPABASE_URL` | servidor, durante a renderização |
+| `SUPABASE_PUBLISHABLE_KEY` | servidor, durante a renderização |
 
-### Variáveis de ambiente
+As chaves `publishable` são públicas por design — vão no bundle do navegador de qualquer forma. A proteção dos dados está nas políticas de Row Level Security do banco, não nelas.
 
-| Variável | Obrigatória | Descrição |
-|---|---|---|
-| `PORT` | não | Definida automaticamente pela Railway. Localmente cai em `3000`. |
-| `CANONICAL_HOST` | não | Domínio oficial, ex.: `www.absolutionsconsultoria.com.br`. Quando definida, qualquer acesso por outro endereço (como o `*.up.railway.app`) é redirecionado com 301 para ela, evitando conteúdo duplicado no Google. **Só defina depois que o domínio próprio estiver funcionando** — antes disso, você perderia o acesso de preview pelo endereço da Railway. |
+## Segurança dos dados
 
-## Domínio
+As 12 tabelas têm Row Level Security ativo, com dois perfis:
 
-O domínio oficial é **`https://www.absolutionsconsultoria.com.br`**, apontado para a Railway por um CNAME no `www` (DNS no HostGator).
+- **Equipe** (`is_staff()`) — acesso completo
+- **Cliente** (`my_client_id()`) — só os próprios registros, e atividades apenas quando marcadas como visíveis
 
-> **Atenção:** o registro `A` do domínio raiz (`@`) aponta para o HostGator e **não deve ser alterado** — o registro `MX` do e-mail resolve através dele. Apontar a raiz para a Railway derrubaria o e-mail do domínio. Por isso o site usa `www`, com redirecionamento 301 da raiz para `www` configurado no cPanel.
+As funções de autorização têm execução revogada para `anon` e `public`, e só administradores gerenciam papéis. O primeiro cadastro vira administrador por gatilho; os seguintes dependem de liberação.
 
-Se algum dia o domínio mudar, os pontos a atualizar são:
+Migrações em `supabase/migrations/`.
 
-- `public/index.html` — tag `<link rel="canonical">`, metas `og:url`, `og:image`, `twitter:image` e o `url` do JSON-LD
-- `public/robots.txt` — linha do `Sitemap`
-- `public/sitemap.xml` — tag `<loc>`
+## Autenticação
 
-## CRM e portal do cliente
-
-O botão **Acesso**, no canto superior direito, leva ao sistema interno de CRM e ao portal onde o cliente acompanha contratos e projetos. É uma aplicação separada (TanStack Start + Supabase), mantida no repositório `absolutionscrm`.
-
-O endereço está fixado como `https://app.absolutionsconsultoria.com.br` em `public/index.html`. **Enquanto o CRM não estiver publicado nesse subdomínio, o botão leva a um endereço inexistente** — ajuste o `href` do link `.nav-acesso` se o endereço final for outro.
-
-Os dois projetos são deliberadamente separados: este site é estático e otimizado para busca, enquanto o CRM precisa de servidor próprio de renderização. Uni-los no mesmo endereço exigiria configurar caminho base no roteador, no SSR e nos assets — frágil e sem ganho para o visitante.
-
-## Pendências
-
-- **Números do hero**: os destaques da seção inicial (“100% foco em Fluig” etc.) são editáveis em `public/index.html` — ajuste conforme a realidade da empresa (anos de experiência, nº de projetos etc.).
-- **Redes sociais**: quando tiver LinkedIn/Instagram, adicione as URLs no array `sameAs` do JSON-LD e no rodapé.
-- **Google Search Console**: após publicar, cadastre o site e envie o `sitemap.xml` — acelera a indexação.
-- **Cache dos assets**: `styles.css` e `main.js` são referenciados com um sufixo `?v=X.Y.Z` no HTML. Sempre que alterar CSS ou JS, **incremente essa versão** nos `<link>`/`<script>` de `index.html` e `404.html` — senão visitantes recorrentes continuam vendo a versão antiga em cache (o servidor manda cache de 7 dias).
+E-mail e senha via Supabase. O botão "Continuar com Google" usa o OAuth nativo do Supabase — exige habilitar o provedor em **Authentication → Providers** no painel. Sem isso, o botão retorna erro e apenas o login por senha funciona.
 
 ## Estrutura
 
 ```
-├── server.js            # Servidor Express
-├── package.json
-├── marketing/           # Peças em PNG e o gerador delas (ver README próprio)
-└── public/
-    ├── index.html       # Página única (landing)
-    ├── 404.html
-    ├── favicon.svg
-    ├── robots.txt
-    ├── sitemap.xml
-    ├── css/styles.css
-    ├── js/main.js       # Partículas, reveal on scroll, menu mobile
-    └── img/             # Imagens (og-cover.png vai aqui)
+├── src/
+│   ├── routes/            # site institucional (index.tsx), auth e rotas do CRM
+│   ├── components/site/   # partículas, diagrama BPMN e animação de entrada
+│   ├── components/ui/     # componentes compartilhados
+│   ├── integrations/      # cliente Supabase e middleware de sessão
+│   └── styles.css         # tokens de design e estilos do diagrama
+├── public/                # favicon, og-cover, robots.txt, sitemap.xml
+├── supabase/migrations/
+└── marketing/             # peças em PNG e o gerador delas (README próprio)
 ```
 
-## Contato
+## Domínio
 
-WhatsApp Business: **(61) 92003-5859** — todos os CTAs do site apontam para `https://wa.me/5561920035859` com mensagem pré-preenchida.
+`https://www.absolutionsconsultoria.com.br`, com a raiz sem `www` redirecionando via regra na Cloudflare. O DNS fica na Cloudflare e o e-mail do domínio na KingHost.
+
+Se o domínio mudar, atualize a constante `SITE` em `src/routes/index.tsx` (usada no canonical, Open Graph e dados estruturados), além de `public/robots.txt` e `public/sitemap.xml`.
+
+## Marketing
+
+As peças gráficas e o gerador delas estão em `marketing/`, com documentação própria.

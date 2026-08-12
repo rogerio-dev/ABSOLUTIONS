@@ -1,8 +1,16 @@
 node_modules/
 .env
+.env.*
+!.env.example
 *.log
 .DS_Store
 Thumbs.db
+
+# Saída do build
+.output
+.nitro
+.tanstack
+dist
 
 # Fontes baixadas automaticamente pelo gerador de material de marketing
 marketing/fonts/
