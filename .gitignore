@@ -17,3 +17,4 @@ marketing/fonts/
 
 # SQL de importação gerado a partir da planilha: dado pessoal, não versionar
 scripts/*.sql
+__pycache__/
