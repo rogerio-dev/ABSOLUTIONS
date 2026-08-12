@@ -44,6 +44,14 @@ Se algum dia o domínio mudar, os pontos a atualizar são:
 - `public/robots.txt` — linha do `Sitemap`
 - `public/sitemap.xml` — tag `<loc>`
 
+## CRM e portal do cliente
+
+O botão **Acesso**, no canto superior direito, leva ao sistema interno de CRM e ao portal onde o cliente acompanha contratos e projetos. É uma aplicação separada (TanStack Start + Supabase), mantida no repositório `absolutionscrm`.
+
+O endereço está fixado como `https://app.absolutionsconsultoria.com.br` em `public/index.html`. **Enquanto o CRM não estiver publicado nesse subdomínio, o botão leva a um endereço inexistente** — ajuste o `href` do link `.nav-acesso` se o endereço final for outro.
+
+Os dois projetos são deliberadamente separados: este site é estático e otimizado para busca, enquanto o CRM precisa de servidor próprio de renderização. Uni-los no mesmo endereço exigiria configurar caminho base no roteador, no SSR e nos assets — frágil e sem ganho para o visitante.
+
 ## Pendências
 
 - **Números do hero**: os destaques da seção inicial (“100% foco em Fluig” etc.) são editáveis em `public/index.html` — ajuste conforme a realidade da empresa (anos de experiência, nº de projetos etc.).

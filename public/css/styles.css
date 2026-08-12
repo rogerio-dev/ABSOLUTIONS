@@ -218,6 +218,14 @@ h1 {
 }
 .nav-list a.nav-highlight:hover { color: var(--text); }
 
+/* Acesso ao CRM: deliberadamente discreto, para não competir com o CTA de contato */
+.nav-acesso {
+  color: var(--muted);
+  border-color: var(--border);
+}
+.nav-acesso:hover { color: var(--accent); border-color: var(--accent); }
+.nav-acesso svg { flex: none; }
+
 /* ---------- Oferta: primeiro processo grátis ---------- */
 .offer-section { padding-top: 0; }
 
