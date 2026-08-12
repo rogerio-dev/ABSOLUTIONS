@@ -281,15 +281,55 @@ COMMIT;
     return "\n".join(partes)
 
 
+def filtrar_amostra(registros: list[dict], quantos: int, preferidos: list[str]) -> list[dict]:
+    """
+    Recorta uma amostra por cliente. Os clientes indicados em `preferidos` entram
+    primeiro, para o teste incluir casos que sabidamente já existem no CRM.
+    """
+    por_cliente: dict[str, list[dict]] = defaultdict(list)
+    for r in registros:
+        por_cliente[normalizar(r["cliente"])].append(r)
+
+    escolhidos: list[str] = []
+    for nome in preferidos:
+        chave = normalizar(nome)
+        if chave in por_cliente and chave not in escolhidos:
+            escolhidos.append(chave)
+
+    for chave in sorted(por_cliente, key=lambda c: -len(por_cliente[c])):
+        if len(escolhidos) >= quantos:
+            break
+        if chave not in escolhidos:
+            escolhidos.append(chave)
+
+    return [r for chave in escolhidos for r in por_cliente[chave]]
+
+
 def main() -> None:
     if len(sys.argv) < 2:
         print(__doc__)
         sys.exit(1)
 
-    planilha = sys.argv[1]
-    saida = sys.argv[2] if len(sys.argv) > 2 else "importar-contatos.sql"
+    argumentos = [a for a in sys.argv[1:] if not a.startswith("--")]
+    opcoes = [a for a in sys.argv[1:] if a.startswith("--")]
+
+    planilha = argumentos[0]
+    saida = argumentos[1] if len(argumentos) > 1 else "importar-contatos.sql"
+
+    amostra = 0
+    for opcao in opcoes:
+        if opcao.startswith("--amostra="):
+            amostra = int(opcao.split("=", 1)[1])
 
     registros, descartes, total = carregar(planilha)
+
+    if amostra:
+        registros = filtrar_amostra(
+            registros,
+            amostra,
+            preferidos=["10 K DECORACOES CAMA MESA BANHO LTDA"],
+        )
+
     sql = gerar_sql(registros)
 
     with open(saida, "w", encoding="utf-8") as f:
