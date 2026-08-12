@@ -14,3 +14,6 @@ dist
 
 # Fontes baixadas automaticamente pelo gerador de material de marketing
 marketing/fonts/
+
+# SQL de importação gerado a partir da planilha: dado pessoal, não versionar
+scripts/*.sql
