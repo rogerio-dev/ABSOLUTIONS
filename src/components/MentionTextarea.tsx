@@ -34,18 +34,35 @@ export function MentionTextarea({
   onSubmit?: () => void;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
+  const listaRef = useRef<HTMLUListElement>(null);
   const [busca, setBusca] = useState<{ termo: string; inicio: number } | null>(null);
   const [destacado, setDestacado] = useState(0);
+  // O campo costuma ficar no rodapé do painel; abrir para baixo jogaria a
+  // lista para fora da tela. Decidimos o lado pelo espaço disponível.
+  const [paraCima, setParaCima] = useState(true);
 
   const filtradas = useMemo(() => {
     if (!busca) return [];
     const t = busca.termo.toLowerCase();
     return sugestoes
       .filter((s) => s.email.toLowerCase().includes(t) || s.nome.toLowerCase().includes(t))
-      .slice(0, 6);
+      .slice(0, 30);
   }, [busca, sugestoes]);
 
   useEffect(() => setDestacado(0), [busca?.termo]);
+
+  // Escolhe o lado ao abrir: se não couber embaixo, abre para cima.
+  useEffect(() => {
+    if (!busca || !ref.current) return;
+    const r = ref.current.getBoundingClientRect();
+    const abaixo = window.innerHeight - r.bottom;
+    setParaCima(abaixo < 240 && r.top > abaixo);
+  }, [busca?.termo, busca?.inicio]);
+
+  // Mantém o item destacado visível ao navegar pelo teclado.
+  useEffect(() => {
+    listaRef.current?.children[destacado]?.scrollIntoView({ block: "nearest" });
+  }, [destacado]);
 
   function aoDigitar(texto: string, cursor: number) {
     onChange(texto);
@@ -111,7 +128,13 @@ export function MentionTextarea({
       />
 
       {busca && filtradas.length > 0 && (
-        <ul className="absolute z-50 mt-1 w-full overflow-hidden rounded-md border border-border bg-popover shadow-lg">
+        <ul
+          ref={listaRef}
+          className={cn(
+            "absolute z-50 max-h-60 w-full overflow-y-auto overscroll-contain rounded-md border border-border bg-popover shadow-lg",
+            paraCima ? "bottom-full mb-1" : "top-full mt-1",
+          )}
+        >
           {filtradas.map((s, i) => (
             <li key={s.email}>
               <button
@@ -136,9 +159,16 @@ export function MentionTextarea({
         </ul>
       )}
 
-      {busca && filtradas.length === 0 && busca.termo.includes("@") && (
-        <p className="absolute z-50 mt-1 w-full rounded-md border border-border bg-popover px-3 py-2 text-xs text-muted-foreground shadow-lg">
-          Continue digitando o e-mail completo para convidar alguém de fora.
+      {busca && filtradas.length === 0 && busca.termo.length > 0 && (
+        <p
+          className={cn(
+            "absolute z-50 w-full rounded-md border border-border bg-popover px-3 py-2 text-xs text-muted-foreground shadow-lg",
+            paraCima ? "bottom-full mb-1" : "top-full mt-1",
+          )}
+        >
+          {busca.termo.includes("@")
+            ? "Continue digitando o e-mail completo para convidar alguém de fora."
+            : "Ninguém encontrado. Digite o e-mail completo para convidar."}
         </p>
       )}
     </div>
