@@ -151,6 +151,9 @@ def gerar_sql(registros: list[dict]) -> str:
         "",
         "BEGIN;",
         "",
+        "-- O casamento percorre milhares de linhas; o limite padrão do Supabase não basta.",
+        "SET LOCAL statement_timeout = '30min';",
+        "",
         "CREATE TEMP TABLE _import (",
         "  id serial PRIMARY KEY,",
         "  codigo_t text, cliente text, cliente_alt text, nome text, telefone text, tipo text,",
@@ -188,20 +191,31 @@ def gerar_sql(registros: list[dict]) -> str:
 
     partes.append(
         f"""-- ---------------------------------------------------------------
--- 1. Casa cada linha com o cliente que já existe no CRM.
---    Tenta pelo código T, pelo nome, e pelo nome sem o prefixo numérico.
+-- 1. Tabelas de apoio indexadas.
+--    Sem elas, o casamento vira varredura completa de clients e contacts
+--    para cada linha importada e o tempo limite estoura.
 -- ---------------------------------------------------------------
-CREATE TEMP TABLE _cli ON COMMIT DROP AS
-SELECT i.id AS imp_id,
-       (SELECT c.id FROM public.clients c
-         WHERE (NULLIF(i.codigo_t, '') IS NOT NULL AND lower(c.codigo_t) = lower(i.codigo_t))
-            OR lower(c.nome) = lower(i.cliente)
-            OR lower(c.nome) = lower(i.cliente_alt)
-         ORDER BY (lower(c.codigo_t) = lower(NULLIF(i.codigo_t, ''))) DESC NULLS LAST, c.created_at
-         LIMIT 1) AS client_id
-FROM _import i;
+CREATE INDEX ON _import (lower(cliente));
 
--- 2. Cria só os clientes que realmente não existem.
+CREATE TEMP TABLE _cli_lookup ON COMMIT DROP AS
+SELECT lower(nome) AS chave, lower(codigo_t) AS cod, id, created_at FROM public.clients;
+CREATE INDEX ON _cli_lookup (chave);
+CREATE INDEX ON _cli_lookup (cod);
+ANALYZE _cli_lookup;
+
+-- 2. Casa cada linha com o cliente existente: código T, nome, ou nome sem prefixo.
+CREATE TEMP TABLE _cli ON COMMIT DROP AS
+SELECT DISTINCT ON (i.id) i.id AS imp_id, l.id AS client_id
+FROM _import i
+LEFT JOIN _cli_lookup l
+       ON l.chave = lower(i.cliente)
+       OR l.chave = lower(i.cliente_alt)
+       OR (NULLIF(i.codigo_t, '') IS NOT NULL AND l.cod = lower(i.codigo_t))
+ORDER BY i.id, (l.cod = lower(NULLIF(i.codigo_t, ''))) DESC NULLS LAST, l.created_at;
+CREATE INDEX ON _cli (imp_id);
+ANALYZE _cli;
+
+-- 3. Cria só os clientes que realmente não existem.
 INSERT INTO public.clients (nome, codigo_t, observacoes)
 SELECT DISTINCT ON (lower(i.cliente))
        i.cliente, NULLIF(i.codigo_t, ''), 'Importado da base de chamados Zendesk.'
@@ -210,35 +224,48 @@ JOIN _cli m ON m.imp_id = i.id
 WHERE m.client_id IS NULL
 ORDER BY lower(i.cliente), i.codigo_t NULLS LAST;
 
--- Refaz o vínculo para as linhas cujo cliente acabou de ser criado.
+-- Refaz o vínculo das linhas cujo cliente acabou de ser criado.
+INSERT INTO _cli_lookup (chave, cod, id, created_at)
+SELECT lower(c.nome), lower(c.codigo_t), c.id, c.created_at
+FROM public.clients c
+WHERE c.observacoes = 'Importado da base de chamados Zendesk.'
+  AND NOT EXISTS (SELECT 1 FROM _cli_lookup l WHERE l.id = c.id);
+ANALYZE _cli_lookup;
+
 UPDATE _cli m
-SET client_id = (SELECT c.id FROM public.clients c
-                  WHERE lower(c.nome) = lower(i.cliente) ORDER BY c.created_at LIMIT 1)
-FROM _import i
-WHERE i.id = m.imp_id AND m.client_id IS NULL;
+SET client_id = l.id
+FROM _import i, _cli_lookup l
+WHERE i.id = m.imp_id AND m.client_id IS NULL AND l.chave = lower(i.cliente);
 
 -- Completa o código T de clientes que já existiam sem ele.
 UPDATE public.clients c
 SET codigo_t = sub.codigo_t, updated_at = now()
 FROM (SELECT DISTINCT ON (m.client_id) m.client_id, NULLIF(i.codigo_t, '') AS codigo_t
         FROM _import i JOIN _cli m ON m.imp_id = i.id
-       WHERE NULLIF(i.codigo_t, '') IS NOT NULL
+       WHERE NULLIF(i.codigo_t, '') IS NOT NULL AND m.client_id IS NOT NULL
        ORDER BY m.client_id, i.ocorrencias DESC) sub
 WHERE c.id = sub.client_id AND c.codigo_t IS NULL;
 
 -- ---------------------------------------------------------------
--- 3. Casa cada linha com o contato que já existe: e-mail primeiro, nome depois.
+-- 4. Casa cada linha com o contato existente: e-mail primeiro, nome depois.
 -- ---------------------------------------------------------------
+CREATE TEMP TABLE _ct_lookup ON COMMIT DROP AS
+SELECT client_id, lower(nome) AS nome_chave, lower(email) AS email_chave, id, created_at
+FROM public.contacts;
+CREATE INDEX ON _ct_lookup (client_id, email_chave);
+CREATE INDEX ON _ct_lookup (client_id, nome_chave);
+ANALYZE _ct_lookup;
+
 CREATE TEMP TABLE _ct ON COMMIT DROP AS
-SELECT i.id AS imp_id, m.client_id,
-       (SELECT ct.id FROM public.contacts ct
-         WHERE ct.client_id = m.client_id
-           AND ((NULLIF(i.email, '') IS NOT NULL AND lower(ct.email) = lower(i.email))
-                OR lower(ct.nome) = lower(i.nome))
-         ORDER BY (lower(ct.email) = lower(NULLIF(i.email, ''))) DESC NULLS LAST, ct.created_at
-         LIMIT 1) AS contact_id
+SELECT DISTINCT ON (i.id) i.id AS imp_id, m.client_id, l.id AS contact_id
 FROM _import i
-JOIN _cli m ON m.imp_id = i.id;
+JOIN _cli m ON m.imp_id = i.id
+LEFT JOIN _ct_lookup l
+       ON l.client_id = m.client_id
+      AND (l.email_chave = lower(NULLIF(i.email, '')) OR l.nome_chave = lower(i.nome))
+ORDER BY i.id, (l.email_chave = lower(NULLIF(i.email, ''))) DESC NULLS LAST, l.created_at;
+CREATE INDEX ON _ct (contact_id);
+ANALYZE _ct;
 
 -- 4. Preenche o telefone de quem já estava cadastrado sem ele.
 --    Nunca sobrescreve telefone existente.
