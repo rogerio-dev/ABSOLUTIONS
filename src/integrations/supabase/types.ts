@@ -583,6 +583,67 @@ export type Database = {
           },
         ]
       }
+      comment_mentions: {
+        Row: {
+          comment_id: string
+          created_at: string
+          email: string
+          id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          email: string
+          id?: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_mentions_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "task_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_participants: {
+        Row: {
+          convidado_por: string | null
+          created_at: string
+          email: string
+          id: string
+          task_id: string
+        }
+        Insert: {
+          convidado_por?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          task_id: string
+        }
+        Update: {
+          convidado_por?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_participants_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "project_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_comments: {
         Row: {
           author_id: string
@@ -591,6 +652,7 @@ export type Database = {
           created_at: string
           id: string
           task_id: string
+          updated_at: string
         }
         Insert: {
           author_id: string
@@ -599,6 +661,7 @@ export type Database = {
           created_at?: string
           id?: string
           task_id: string
+          updated_at?: string
         }
         Update: {
           author_id?: string
@@ -607,6 +670,7 @@ export type Database = {
           created_at?: string
           id?: string
           task_id?: string
+          updated_at?: string
         }
         Relationships: [
           {

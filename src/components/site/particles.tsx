@@ -44,6 +44,7 @@ export function Particles() {
 
       for (let i = 0; i < particulas.length; i++) {
         const p = particulas[i];
+        if (!p) continue;
         p.x += p.vx;
         p.y += p.vy;
         if (p.x < 0 || p.x > w) p.vx *= -1;
@@ -56,6 +57,7 @@ export function Particles() {
 
         for (let j = i + 1; j < particulas.length; j++) {
           const q = particulas[j];
+          if (!q) continue;
           const d = Math.hypot(p.x - q.x, p.y - q.y);
           if (d < DIST) {
             ctx!.beginPath();

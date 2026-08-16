@@ -9,7 +9,7 @@ import viteReact from "@vitejs/plugin-react";
  * em qualquer lugar (Railway, VPS, container). Use `cloudflare-module` para
  * publicar em Cloudflare Workers.
  */
-const NITRO_PRESET = process.env.NITRO_PRESET ?? "node-server";
+const NITRO_PRESET = process.env["NITRO_PRESET"] ?? "node-server";
 
 export default defineConfig(async ({ mode, command }) => {
   /*

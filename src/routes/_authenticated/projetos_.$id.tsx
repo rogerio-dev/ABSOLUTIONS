@@ -2,10 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { CalendarDays, EyeOff, MessageSquare, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell, NoAccess, PageHeader } from "@/components/AppShell";
 import { Kanban } from "@/components/Kanban";
+import { TaskPanel } from "@/components/TaskPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +29,7 @@ export const Route = createFileRoute("/_authenticated/projetos_/$id")({
 type Task = {
   id: string;
   titulo: string;
+  descricao: string | null;
   status: "backlog" | "todo" | "doing" | "review" | "done";
   prioridade: string | null;
   responsavel_nome: string | null;
@@ -35,11 +37,18 @@ type Task = {
   visivel_cliente: boolean;
 };
 
+const CORES_PRIORIDADE: Record<string, string> = {
+  alta: "bg-rose-500/15 text-rose-300",
+  media: "bg-amber-500/15 text-amber-300",
+  baixa: "bg-slate-500/15 text-slate-300",
+};
+
 function ProjetoDetalhe() {
   const { id } = Route.useParams();
   const { data: me, isLoading } = useMe();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [aberta, setAberta] = useState<Task | null>(null);
 
   const { data: projeto } = useQuery({
     queryKey: ["projeto", id],
@@ -56,11 +65,26 @@ function ProjetoDetalhe() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_tasks")
-        .select("id, titulo, status, prioridade, responsavel_nome, prazo, visivel_cliente")
+        .select("id, titulo, descricao, status, prioridade, responsavel_nome, prazo, visivel_cliente")
         .eq("project_id", id)
         .order("posicao");
       if (error) throw error;
       return (data ?? []) as Task[];
+    },
+  });
+
+  // Contagem de comentários por tarefa, para o cartão indicar que há conversa.
+  const { data: comentariosPorTarefa } = useQuery({
+    queryKey: ["contagem-comentarios", id, tasks?.length],
+    enabled: !!tasks?.length,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("task_comments")
+        .select("task_id")
+        .in("task_id", tasks!.map((t) => t.id));
+      const mapa: Record<string, number> = {};
+      for (const linha of data ?? []) mapa[linha.task_id as string] = (mapa[linha.task_id as string] ?? 0) + 1;
+      return mapa;
     },
   });
 
@@ -164,22 +188,67 @@ function ProjetoDetalhe() {
         columns={TASK_STATUS}
         items={tasks ?? []}
         columnOf={(t) => t.status}
+        podeArrastar={!!me?.isStaff}
+        onCardClick={(t) => setAberta(t)}
         onMove={(t, status) =>
           me?.isStaff ? mover.mutate({ taskId: t.id, status: status as Task["status"] }) : undefined
         }
-        renderCard={(t) => (
-          <div>
-            <p className="text-sm font-medium">{t.titulo}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {t.responsavel_nome ?? "Sem responsável"} · {d(t.prazo)}
-            </p>
-            {!t.visivel_cliente && me?.isStaff ? (
-              <span className="mt-2 inline-block rounded bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-                Interno
-              </span>
-            ) : null}
-          </div>
-        )}
+        renderCard={(t) => {
+          const comentarios = comentariosPorTarefa?.[t.id] ?? 0;
+          const atrasada = t.prazo && t.status !== "done" && new Date(t.prazo) < new Date();
+          return (
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-medium leading-snug">{t.titulo}</p>
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                {t.prioridade && (
+                  <span
+                    className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${
+                      CORES_PRIORIDADE[t.prioridade] ?? "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {t.prioridade}
+                  </span>
+                )}
+                {!t.visivel_cliente && me?.isStaff && (
+                  <span className="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                    <EyeOff className="h-3 w-3" /> interno
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                {t.responsavel_nome && (
+                  <span className="flex items-center gap-1.5">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/15 text-[10px] font-semibold text-primary">
+                      {t.responsavel_nome.trim().charAt(0).toUpperCase()}
+                    </span>
+                    {t.responsavel_nome}
+                  </span>
+                )}
+                {t.prazo && (
+                  <span className={`flex items-center gap-1 ${atrasada ? "text-rose-400" : ""}`}>
+                    <CalendarDays className="h-3 w-3" />
+                    {d(t.prazo)}
+                  </span>
+                )}
+                {comentarios > 0 && (
+                  <span className="ml-auto flex items-center gap-1">
+                    <MessageSquare className="h-3 w-3" />
+                    {comentarios}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        }}
+      />
+
+      <TaskPanel
+        tarefa={aberta}
+        clientId={(projeto?.client_id as string | undefined) ?? null}
+        aberto={!!aberta}
+        onFechar={() => setAberta(null)}
       />
     </AppShell>
   );
