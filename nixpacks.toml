@@ -1,0 +1,11 @@
+# A imagem precisa de Node 22+: o cliente Supabase usa WebSocket nativo,
+# que so existe a partir dessa versao. Em Node 20 o SSR quebra ao criar o
+# cliente no servidor.
+[phases.setup]
+nixPkgs = ["nodejs_22"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm start"

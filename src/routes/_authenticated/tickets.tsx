@@ -214,9 +214,11 @@ function Tickets() {
               {pendentes} mensagem(ns) aguardando envio por e-mail
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {despacho.data?.configurado === false
-                ? "O SMTP nao esta configurado no ambiente; as mensagens ficam guardadas ate ele existir."
-                : "O envio falhou nas ultimas tentativas. Nada foi perdido."}
+              {despacho.isError
+                ? "Nao foi possivel contatar o servidor de envio. Nada foi perdido."
+                : despacho.data?.configurado === false
+                  ? "O SMTP nao esta configurado no ambiente; as mensagens ficam guardadas ate ele existir."
+                  : "O envio falhou nas ultimas tentativas. Nada foi perdido."}
             </p>
           </div>
           <Button size="sm" variant="outline" disabled={reenviar.isPending} onClick={() => reenviar.mutate()}>
