@@ -59,12 +59,6 @@ function remetente(): string {
   return `${env("SMTP_FROM_NOME") ?? "Suporte AB Solutions"} <${conta}>`;
 }
 
-/** Domínio do remetente, sem o nome e sem os sinais de menor/maior. */
-function dominioDoRemetente(): string {
-  const bruto = remetente().split("@").pop() ?? "absolutionsconsultoria.com.br";
-  return bruto.replace(/[>\s]/g, "");
-}
-
 function escapar(texto: string): string {
   return texto
     .replace(/&/g, "&amp;")
@@ -83,7 +77,10 @@ function escapar(texto: string): string {
  */
 function raizDaConversa(m: EmailParaEnviar): string | undefined {
   if (!m.numero) return undefined;
-  return `<chamado-${m.numero}@${dominioDoRemetente()}>`;
+  // O domínio aqui é fixo de propósito. Se viesse do remetente, trocar o
+  // endereço de envio ou o provedor quebraria o agrupamento de tudo que já foi
+  // enviado, e a conversa do cliente se partiria em duas no meio do chamado.
+  return `<chamado-${m.numero}@${SITE.replace(/^www\./, "")}>`;
 }
 
 /** Trecho que alguns clientes mostram ao lado do assunto, antes de abrir. */
@@ -92,42 +89,36 @@ function preheader(m: EmailParaEnviar): string {
 }
 
 /**
- * Modelo em HTML pensado para chegar, não para impressionar.
+ * Modelo em HTML pensado para cair na caixa de entrada.
  *
- * As escolhas puxam todas para o conservador, porque cliente de e-mail
- * corporativo é ambiente hostil:
+ * A primeira versão daqui era um cartão: fundo cinza, caixa branca com borda
+ * arredondada, rótulo colorido em caixa alta, tabelas aninhadas. O Gmail leu
+ * isso como peça de marketing e mandou para Promoções — e leu certo, porque era
+ * exatamente a forma de uma newsletter.
  *
- *   - fundo claro. O tema escuro do site vira mancha ilegível no Outlook, que
- *     ignora cor de fundo em body, e alguns clientes invertem cores por conta
- *     própria e estragam o resultado;
- *   - tabelas com estilo inline. O Outlook renderiza com o motor do Word:
- *     flexbox, grid e folha de estilo no cabeçalho são descartados;
- *   - nenhuma imagem, nenhuma fonte externa, nenhum rastreador. Imagem é
- *     bloqueada por padrão e deixa buraco, e recurso externo pesa no filtro;
- *   - fontes do sistema, largura máxima de 600px, tudo curto. O corte do Gmail
- *     em 102KB nunca chega perto.
+ * O classificador do Gmail olha estrutura, não intenção. Tabela aninhada com
+ * cor de fundo, borda arredondada, botão e cabeçalho colorido somam pontos para
+ * Promoções; e-mail que parece carta escrita por gente vai para Principal. Por
+ * isso o modelo aqui é quase texto: sem cor de fundo, sem cartão, sem borda,
+ * sem tabela, sem imagem. Só tipografia, em uma coluna.
  *
- * O texto puro que acompanha não é enfeite: é o que aparece em leitor de tela,
- * em relógio e em cliente que recusa HTML.
+ * O resto continua conservador pelos mesmos motivos de antes: cliente de e-mail
+ * corporativo é ambiente hostil. Nada de fonte externa, nada de rastreador,
+ * estilo sempre inline — o Outlook renderiza com o motor do Word e descarta
+ * folha de estilo no cabeçalho.
  */
 function montarHtml(m: EmailParaEnviar): string {
   const paragrafos = escapar(m.corpo)
     .split(/\n{2,}/)
     .map((p) => p.trim())
     .filter(Boolean)
-    .map(
-      (p) =>
-        `<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#1f2937;">${p.replace(/\n/g, "<br>")}</p>`,
-    )
-    .join("");
+    .map((p) => `<p style="margin:0 0 16px;">${p.replace(/\n/g, "<br>")}</p>`)
+    .join("\n      ");
 
-  const cabecalho = m.numero ? `Chamado #${m.numero}` : "Suporte";
-  const assuntoLimpo = escapar(m.assunto.replace(/^\[#\d+\]\s*/, ""));
-  const divisor =
-    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">' +
-    '<tr><td style="padding:18px 0;">' +
-    '<div style="height:1px;background-color:#e5e7eb;line-height:1px;font-size:0;">&nbsp;</div>' +
-    "</td></tr></table>";
+  const identificacao = [m.numero ? `Chamado #${m.numero}` : null, m.cliente ?? null]
+    .filter(Boolean)
+    .map((t) => escapar(String(t)))
+    .join(" &middot; ");
 
   return `<!doctype html>
 <html lang="pt-BR">
@@ -135,61 +126,26 @@ function montarHtml(m: EmailParaEnviar): string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="x-apple-disable-message-reformatting">
-<meta name="color-scheme" content="light">
-<meta name="supported-color-schemes" content="light">
-<title>${escapar(cabecalho)}</title>
+<title>${escapar(m.assunto)}</title>
 </head>
-<body style="margin:0;padding:0;width:100%;background-color:#f1f3f6;">
+<body style="margin:0;padding:0;">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapar(preheader(m))}</div>
 
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f1f3f6;">
-    <tr>
-      <td align="center" style="padding:24px 12px;">
+  <div style="max-width:620px;margin:0 auto;padding:20px;font-family:${FONTE};font-size:15px;line-height:1.6;color:#222222;">
 
-        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:100%;">
-          <tr>
-            <td style="padding:0 4px 12px;font-family:${FONTE};font-size:13px;color:#6b7280;">
-              <strong style="color:#111827;font-size:15px;">AB Solutions</strong>
-              &nbsp;&middot;&nbsp; Suporte TOTVS Fluig
-            </td>
-          </tr>
+    ${identificacao ? `<p style="margin:0 0 16px;font-size:13px;color:#777777;">${identificacao}</p>` : ""}
 
-          <tr>
-            <td style="background-color:#ffffff;border:1px solid #e2e5ea;border-radius:8px;padding:24px;font-family:${FONTE};">
+    ${m.autor ? `<p style="margin:0 0 16px;"><strong>${escapar(m.autor)}</strong> escreveu:</p>` : ""}
 
-              <p style="margin:0 0 4px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#0e7490;">
-                ${escapar(cabecalho)}
-              </p>
-              <p style="margin:0;font-size:18px;font-weight:600;line-height:1.35;color:#111827;">
-                ${assuntoLimpo}
-              </p>
-              ${m.cliente ? `<p style="margin:4px 0 0;font-size:13px;color:#6b7280;">${escapar(m.cliente)}</p>` : ""}
+    ${paragrafos || "<p style=\"margin:0 0 16px;\">&nbsp;</p>"}
 
-              ${divisor}
+    <p style="margin:24px 0 0;padding-top:16px;border-top:1px solid #dddddd;font-size:13px;color:#777777;">
+      Responda este e-mail para continuar no mesmo chamado.<br>
+      AB Solutions &middot; Consultoria TOTVS Fluig &middot; ${TELEFONE}<br>
+      ${SITE}
+    </p>
 
-              ${m.autor ? `<p style="margin:0 0 12px;font-size:13px;color:#6b7280;"><strong style="color:#111827;">${escapar(m.autor)}</strong> escreveu:</p>` : ""}
-              ${paragrafos || '<p style="margin:0;font-size:15px;line-height:1.6;color:#1f2937;">&nbsp;</p>'}
-
-              ${divisor}
-
-              <p style="margin:0;font-size:13px;line-height:1.5;color:#6b7280;">
-                Responda este e-mail para continuar no mesmo chamado. Sua resposta entra
-                automaticamente no histórico e a equipe é avisada.
-              </p>
-            </td>
-          </tr>
-
-          <tr>
-            <td style="padding:16px 4px 0;font-family:${FONTE};font-size:12px;line-height:1.6;color:#9099a8;">
-              AB Solutions &middot; Consultoria TOTVS Fluig<br>
-              ${TELEFONE} &middot; ${SITE}
-            </td>
-          </tr>
-        </table>
-
-      </td>
-    </tr>
-  </table>
+  </div>
 </body>
 </html>`;
 }

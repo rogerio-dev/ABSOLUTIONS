@@ -135,16 +135,30 @@ Sem nenhum meio configurado, o sistema continua funcionando: as mensagens ficam 
 
 Todo envio sai em `multipart/alternative`: HTML e texto puro na mesma mensagem. O texto não é enfeite — é o que aparece em leitor de tela, em relógio e em cliente que recusa HTML.
 
-O HTML puxa para o conservador, porque cliente de e-mail corporativo é ambiente hostil:
+**O HTML é quase texto, e isso é a decisão principal.** A primeira versão era um cartão: fundo cinza, caixa branca com borda arredondada, rótulo colorido em caixa alta, tabelas aninhadas. O Gmail mandou para Promoções — e leu certo, porque aquilo tinha exatamente a forma de uma newsletter. O classificador olha estrutura, não intenção: tabela aninhada com cor de fundo, borda arredondada, botão e cabeçalho colorido somam pontos para Promoções; e-mail que parece carta escrita por gente vai para Principal.
 
-- **fundo claro.** O tema escuro do site vira mancha ilegível no Outlook, que ignora cor de fundo em `body`, e alguns clientes invertem cores por conta própria
-- **tabelas com estilo inline.** O Outlook renderiza com o motor do Word: flexbox, grid e folha de estilo no `<head>` são descartados
-- **nenhuma imagem, fonte externa ou rastreador.** Imagem é bloqueada por padrão e deixa buraco; recurso externo pesa no filtro de spam. O rastreamento de abertura e a reescrita de link do Mailgun ficam desligados por chamada (`o:tracking=no`) — pixel e link mascarado são exatamente o que filtro corporativo procura, e aqui o ganho seria zero
-- **fontes do sistema, 600px de largura, tudo curto.** O corte do Gmail em 102KB nunca chega perto
+O modelo atual é uma coluna só, sem cor de fundo, sem cartão, sem borda, sem tabela, sem imagem. Só tipografia.
 
-As mensagens de um mesmo chamado carregam `References` e `In-Reply-To` apontando para uma raiz sintética (`<chamado-1000@dominio>`). Gmail, Outlook e Apple Mail agrupam por ela, então a conversa vira uma thread só na caixa do cliente em vez de dez e-mails soltos com o mesmo assunto.
+O resto continua conservador porque cliente de e-mail corporativo é ambiente hostil:
+
+- **estilo sempre inline.** O Outlook renderiza com o motor do Word: flexbox, grid e folha de estilo no `<head>` são descartados
+- **nenhuma imagem, fonte externa ou rastreador.** Imagem é bloqueada por padrão e deixa buraco; recurso externo pesa no filtro. O rastreamento de abertura e a reescrita de link do Mailgun ficam desligados por chamada (`o:tracking=no`) — pixel e link mascarado são exatamente o que filtro corporativo procura, e aqui o ganho seria zero
+- **fontes do sistema, 620px, tudo curto.** O corte do Gmail em 102KB nunca chega perto
+
+**O remetente usa o domínio raiz**, não o subdomínio de envio:
+
+```
+EMAIL_REMETENTE=Suporte AB Solutions <suporte@absolutionsconsultoria.com.br>
+MAILGUN_DOMINIO=mg.absolutionsconsultoria.com.br
+```
+
+O DKIM assina como `d=mg.absolutionsconsultoria.com.br`, e o DMARC do domínio está em alinhamento relaxado (sem `adkim=s`), então subdomínio e raiz alinham e a autenticação passa. O ganho é de leitura humana: `@absolutionsconsultoria.com.br` é reconhecível, `@mg.…` parece endereço de máquina. Se um dia o DMARC virar `adkim=s`, esta escolha para de funcionar e o remetente tem que voltar para o subdomínio.
+
+As mensagens de um mesmo chamado carregam `References` e `In-Reply-To` apontando para uma raiz sintética (`<chamado-1000@absolutionsconsultoria.com.br>`). Gmail, Outlook e Apple Mail agrupam por ela, então a conversa vira uma thread só na caixa do cliente em vez de dez e-mails soltos com o mesmo assunto. O domínio dessa raiz é fixo no código, não vem do remetente: se viesse, trocar o endereço de envio partiria a conversa do cliente em duas no meio do chamado.
 
 O texto puro separa as seções com uma régua de hífens. Isso serve ao caminho de volta: quando o cliente responde citando a mensagem inteira, é por esse marcador que a citação é reconhecida e removida antes de virar comentário.
+
+**O que o código não resolve.** Colocação em Principal depende também de reputação, que um subdomínio novo ainda não tem, e de aprendizado por destinatário: o Gmail observa quem abre, responde e move de aba. Marcar "Mover para Principal" uma vez ensina aquela caixa. Cliente que responde por e-mail ensina mais rápido ainda, porque conversa respondida é o sinal mais forte que existe.
 
 ### Recebimento de respostas
 
