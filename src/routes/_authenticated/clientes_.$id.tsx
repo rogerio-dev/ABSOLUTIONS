@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { SuporteDoCliente } from "@/components/SuporteDoCliente";
 import { useMe } from "@/lib/auth";
 import { brl, d, dt } from "@/lib/crm";
 
@@ -204,6 +205,7 @@ function ClienteDetalhe() {
           <TabsTrigger value="contratos">Contratos</TabsTrigger>
           <TabsTrigger value="projetos">Projetos</TabsTrigger>
           <TabsTrigger value="reunioes">Reuniões</TabsTrigger>
+          <TabsTrigger value="suporte">Suporte</TabsTrigger>
         </TabsList>
 
         <TabsContent value="contatos" className="pt-4">
@@ -446,6 +448,11 @@ function ClienteDetalhe() {
             )}
           </div>
         </TabsContent>
+
+        <TabsContent value="suporte" className="pt-4">
+          <SuporteDoCliente clientId={id} />
+        </TabsContent>
+
       </Tabs>
     </AppShell>
   );

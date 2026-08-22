@@ -22,11 +22,13 @@ const staffNav = [
   { to: "/agenda", label: "Agenda", icon: CalendarDays },
   { to: "/contratos", label: "Contratos", icon: FileSignature },
   { to: "/projetos", label: "Projetos", icon: FolderKanban },
+  { to: "/tickets", label: "Suporte", icon: LifeBuoy },
   { to: "/equipe", label: "Equipe & Acessos", icon: UsersRound },
 ] as const;
 
 const clientNav = [
   { to: "/portal", label: "Meu projeto", icon: FolderKanban },
+  { to: "/tickets", label: "Suporte", icon: LifeBuoy },
   { to: "/agenda", label: "Reuniões", icon: CalendarDays },
 ] as const;
 

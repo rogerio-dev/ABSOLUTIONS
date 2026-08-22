@@ -14,6 +14,351 @@ export type Database = {
   }
   public: {
     Tables: {
+      support_inboxes: {
+        Row: {
+          id: string
+          nome: string
+          slug: string
+          email: string | null
+          descricao: string | null
+          padrao: boolean
+          ativa: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          nome: string
+          slug: string
+          email?: string | null
+          descricao?: string | null
+          padrao?: boolean
+          ativa?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          nome?: string
+          slug?: string
+          email?: string | null
+          descricao?: string | null
+          padrao?: boolean
+          ativa?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      sla_policies: {
+        Row: {
+          id: string
+          nome: string
+          fuso: string
+          dias_uteis: number[]
+          hora_inicio: string
+          hora_fim: string
+          conta_so_em_horario_comercial: boolean
+          padrao: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          nome: string
+          fuso?: string
+          dias_uteis?: number[]
+          hora_inicio?: string
+          hora_fim?: string
+          conta_so_em_horario_comercial?: boolean
+          padrao?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          nome?: string
+          fuso?: string
+          dias_uteis?: number[]
+          hora_inicio?: string
+          hora_fim?: string
+          conta_so_em_horario_comercial?: boolean
+          padrao?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      sla_targets: {
+        Row: {
+          id: string
+          policy_id: string
+          prioridade: "critica" | "alta" | "media" | "baixa"
+          primeira_resposta_min: number
+          resolucao_min: number
+        }
+        Insert: {
+          id?: string
+          policy_id: string
+          prioridade: "critica" | "alta" | "media" | "baixa"
+          primeira_resposta_min: number
+          resolucao_min: number
+        }
+        Update: {
+          id?: string
+          policy_id?: string
+          prioridade?: "critica" | "alta" | "media" | "baixa"
+          primeira_resposta_min?: number
+          resolucao_min?: number
+        }
+        Relationships: []
+      }
+      client_support: {
+        Row: {
+          client_id: string
+          habilitado: boolean
+          inbox_id: string | null
+          sla_policy_id: string | null
+          observacoes: string | null
+          habilitado_por: string | null
+          habilitado_em: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          habilitado?: boolean
+          inbox_id?: string | null
+          sla_policy_id?: string | null
+          observacoes?: string | null
+          habilitado_por?: string | null
+          habilitado_em?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          habilitado?: boolean
+          inbox_id?: string | null
+          sla_policy_id?: string | null
+          observacoes?: string | null
+          habilitado_por?: string | null
+          habilitado_em?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ticket_categorias: {
+        Row: {
+          id: string
+          nome: string
+          slug: string
+          descricao: string | null
+          ordem: number
+          ativa: boolean
+        }
+        Insert: {
+          id?: string
+          nome: string
+          slug: string
+          descricao?: string | null
+          ordem?: number
+          ativa?: boolean
+        }
+        Update: {
+          id?: string
+          nome?: string
+          slug?: string
+          descricao?: string | null
+          ordem?: number
+          ativa?: boolean
+        }
+        Relationships: []
+      }
+      tickets: {
+        Row: {
+          id: string
+          numero: number
+          client_id: string
+          inbox_id: string | null
+          categoria_id: string | null
+          assunto: string
+          descricao: string | null
+          prioridade: "critica" | "alta" | "media" | "baixa"
+          status: "novo" | "em_atendimento" | "aguardando_cliente" | "resolvido" | "fechado"
+          canal: "portal" | "email" | "interno"
+          solicitante_user_id: string | null
+          solicitante_nome: string | null
+          solicitante_email: string
+          responsavel_id: string | null
+          aberto_em: string
+          prazo_primeira_resposta: string | null
+          prazo_resolucao: string | null
+          primeira_resposta_em: string | null
+          resolvido_em: string | null
+          fechado_em: string | null
+          pausado_desde: string | null
+          minutos_pausados: number
+          reaberturas: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          numero?: number
+          client_id: string
+          inbox_id?: string | null
+          categoria_id?: string | null
+          assunto: string
+          descricao?: string | null
+          prioridade?: "critica" | "alta" | "media" | "baixa"
+          status?: "novo" | "em_atendimento" | "aguardando_cliente" | "resolvido" | "fechado"
+          canal?: "portal" | "email" | "interno"
+          solicitante_user_id?: string | null
+          solicitante_nome?: string | null
+          solicitante_email: string
+          responsavel_id?: string | null
+          aberto_em?: string
+          prazo_primeira_resposta?: string | null
+          prazo_resolucao?: string | null
+          primeira_resposta_em?: string | null
+          resolvido_em?: string | null
+          fechado_em?: string | null
+          pausado_desde?: string | null
+          minutos_pausados?: number
+          reaberturas?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          numero?: number
+          client_id?: string
+          inbox_id?: string | null
+          categoria_id?: string | null
+          assunto?: string
+          descricao?: string | null
+          prioridade?: "critica" | "alta" | "media" | "baixa"
+          status?: "novo" | "em_atendimento" | "aguardando_cliente" | "resolvido" | "fechado"
+          canal?: "portal" | "email" | "interno"
+          solicitante_user_id?: string | null
+          solicitante_nome?: string | null
+          solicitante_email?: string
+          responsavel_id?: string | null
+          aberto_em?: string
+          prazo_primeira_resposta?: string | null
+          prazo_resolucao?: string | null
+          primeira_resposta_em?: string | null
+          resolvido_em?: string | null
+          fechado_em?: string | null
+          pausado_desde?: string | null
+          minutos_pausados?: number
+          reaberturas?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ticket_messages: {
+        Row: {
+          id: string
+          ticket_id: string
+          tipo: "publica" | "nota_interna" | "sistema"
+          canal: "portal" | "email" | "interno"
+          corpo: string
+          autor_id: string | null
+          autor_nome: string | null
+          autor_email: string | null
+          email_message_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          ticket_id: string
+          tipo?: "publica" | "nota_interna" | "sistema"
+          canal?: "portal" | "email" | "interno"
+          corpo: string
+          autor_id?: string | null
+          autor_nome?: string | null
+          autor_email?: string | null
+          email_message_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          ticket_id?: string
+          tipo?: "publica" | "nota_interna" | "sistema"
+          canal?: "portal" | "email" | "interno"
+          corpo?: string
+          autor_id?: string | null
+          autor_nome?: string | null
+          autor_email?: string | null
+          email_message_id?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      ticket_watchers: {
+        Row: {
+          id: string
+          ticket_id: string
+          email: string
+          nome: string | null
+          adicionado_por: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          ticket_id: string
+          email: string
+          nome?: string | null
+          adicionado_por?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          ticket_id?: string
+          email?: string
+          nome?: string | null
+          adicionado_por?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      ticket_email_outbox: {
+        Row: {
+          id: string
+          ticket_id: string
+          message_id: string | null
+          destinatarios: string[]
+          assunto: string
+          corpo: string
+          enviado_em: string | null
+          erro: string | null
+          tentativas: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          ticket_id: string
+          message_id?: string | null
+          destinatarios: string[]
+          assunto: string
+          corpo: string
+          enviado_em?: string | null
+          erro?: string | null
+          tentativas?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          ticket_id?: string
+          message_id?: string | null
+          destinatarios?: string[]
+          assunto?: string
+          corpo?: string
+          enviado_em?: string | null
+          erro?: string | null
+          tentativas?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
       activities: {
         Row: {
           assunto: string
