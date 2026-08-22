@@ -131,6 +131,21 @@ SMTP_HOST=smtp.kinghost.net SMTP_PORT=465 SMTP_USER=... SMTP_PASS=... node scrip
 
 Sem nenhum meio configurado, o sistema continua funcionando: as mensagens ficam na fila (`ticket_email_outbox`) e saem quando houver como enviar — nada se perde. Abrir a tela de suporte tenta despachar o que estiver pendente.
 
+### Formato das mensagens
+
+Todo envio sai em `multipart/alternative`: HTML e texto puro na mesma mensagem. O texto não é enfeite — é o que aparece em leitor de tela, em relógio e em cliente que recusa HTML.
+
+O HTML puxa para o conservador, porque cliente de e-mail corporativo é ambiente hostil:
+
+- **fundo claro.** O tema escuro do site vira mancha ilegível no Outlook, que ignora cor de fundo em `body`, e alguns clientes invertem cores por conta própria
+- **tabelas com estilo inline.** O Outlook renderiza com o motor do Word: flexbox, grid e folha de estilo no `<head>` são descartados
+- **nenhuma imagem, fonte externa ou rastreador.** Imagem é bloqueada por padrão e deixa buraco; recurso externo pesa no filtro de spam. O rastreamento de abertura e a reescrita de link do Mailgun ficam desligados por chamada (`o:tracking=no`) — pixel e link mascarado são exatamente o que filtro corporativo procura, e aqui o ganho seria zero
+- **fontes do sistema, 600px de largura, tudo curto.** O corte do Gmail em 102KB nunca chega perto
+
+As mensagens de um mesmo chamado carregam `References` e `In-Reply-To` apontando para uma raiz sintética (`<chamado-1000@dominio>`). Gmail, Outlook e Apple Mail agrupam por ela, então a conversa vira uma thread só na caixa do cliente em vez de dez e-mails soltos com o mesmo assunto.
+
+O texto puro separa as seções com uma régua de hífens. Isso serve ao caminho de volta: quando o cliente responde citando a mensagem inteira, é por esse marcador que a citação é reconhecida e removida antes de virar comentário.
+
 ### Recebimento de respostas
 
 Cada chamado tem um endereço próprio, no formato `comercial+t1000-<token>@mg.absolutionsconsultoria.com.br`. Quem responde não digita isso: é o `Reply-To` da notificação. Responder ao e-mail já basta, e a resposta vira mensagem pública do chamado.
@@ -139,19 +154,22 @@ O caminho é `POST /api/email/entrada`, atendido em `src/server.ts` antes do rot
 
 **O domínio de entrada é diferente do domínio da caixa.** O MX de `absolutionsconsultoria.com.br` aponta para a KingHost, onde ficam as caixas de verdade; quem recebe e chama o webhook é o Mailgun, que só enxerga o próprio domínio. Por isso `support_inboxes.dominio_entrada` guarda para onde a resposta é roteada, separado do endereço que aparece para o cliente.
 
-Rota a criar no Mailgun (Receiving → Create Route):
+Rota no Mailgun (Receiving → Routes), já criada:
 
 | Campo | Valor |
 |---|---|
 | Expression | `match_recipient(".*@mg.absolutionsconsultoria.com.br")` |
-| Action | `forward("https://www.absolutionsconsultoria.com.br/api/email/entrada")` |
+| Action | `forward("https://www.absolutionsconsultoria.com.br/api/email/entrada?k=<segredo>")` |
+| Action | `stop()` |
 
 Variáveis:
 
-| Variável | Descrição |
-|---|---|
-| `MAILGUN_SIGNING_KEY` | chave **de assinatura de webhook**, não a de API |
-| `WEBHOOK_EMAIL_SEGREDO` | mesmo valor gravado em `app_segredos` |
+| Variável | Obrigatória | Descrição |
+|---|---|---|
+| `WEBHOOK_EMAIL_SEGREDO` | sim | mesmo valor gravado em `app_segredos`, e o `k=` da URL da rota |
+| `MAILGUN_SIGNING_KEY` | não | chave **de assinatura de webhook** (não a de API) |
+
+A rota é autorizada de dois jeitos, e o primeiro que servir vale: assinatura HMAC do provedor, quando `MAILGUN_SIGNING_KEY` existe, ou o segredo na própria URL. A assinatura é o caminho forte — prova a origem e não se repete. O segredo na URL é mais fraco, porque a URL fica guardada na configuração do provedor e pode entrar em log, mas dispensa copiar uma segunda chave e o segredo já é necessário de todo jeito para falar com o banco. Sem nenhum dos dois, a rota responde 503 e recusa tudo.
 
 **Por que não usa a service_role key.** O webhook chega sem sessão, e o caminho óbvio seria dar a ele a chave de serviço — que ignora todas as políticas de RLS do projeto inteiro, para uma única operação. Em vez disso ele usa a chave publishable e prova quem é com um segredo compartilhado, conferido dentro do Postgres contra um sha256 guardado em `app_segredos` (tabela com RLS e nenhuma política: invisível pela API). Se o ambiente da Railway vazar, o pior caso é alguém postar resposta em um chamado cujo token já teria que conhecer.
 

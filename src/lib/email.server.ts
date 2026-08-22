@@ -30,6 +30,10 @@ export type EmailParaEnviar = {
 
 const TEMPO_LIMITE_MS = 15_000;
 
+const SITE = "www.absolutionsconsultoria.com.br";
+const TELEFONE = "(61) 92003-5859";
+const FONTE = "-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+
 function env(nome: string): string | undefined {
   const v = process.env[nome];
   return v && v.trim() ? v.trim() : undefined;
@@ -55,6 +59,12 @@ function remetente(): string {
   return `${env("SMTP_FROM_NOME") ?? "Suporte AB Solutions"} <${conta}>`;
 }
 
+/** Domínio do remetente, sem o nome e sem os sinais de menor/maior. */
+function dominioDoRemetente(): string {
+  const bruto = remetente().split("@").pop() ?? "absolutionsconsultoria.com.br";
+  return bruto.replace(/[>\s]/g, "");
+}
+
 function escapar(texto: string): string {
   return texto
     .replace(/&/g, "&amp;")
@@ -63,56 +73,166 @@ function escapar(texto: string): string {
     .replace(/"/g, "&quot;");
 }
 
-/** Modelo em HTML com a identidade do site, legível também em texto puro. */
+/**
+ * Identificador estável do chamado, usado em References e In-Reply-To.
+ *
+ * Não é o Message-ID de uma mensagem real: é uma raiz sintética que todas as
+ * mensagens do mesmo chamado compartilham. Gmail, Outlook e Apple Mail agrupam
+ * por essa raiz, então a conversa vira uma thread só na caixa do cliente em vez
+ * de dez e-mails soltos com o mesmo assunto.
+ */
+function raizDaConversa(m: EmailParaEnviar): string | undefined {
+  if (!m.numero) return undefined;
+  return `<chamado-${m.numero}@${dominioDoRemetente()}>`;
+}
+
+/** Trecho que alguns clientes mostram ao lado do assunto, antes de abrir. */
+function preheader(m: EmailParaEnviar): string {
+  return m.corpo.replace(/\s+/g, " ").trim().slice(0, 110);
+}
+
+/**
+ * Modelo em HTML pensado para chegar, não para impressionar.
+ *
+ * As escolhas puxam todas para o conservador, porque cliente de e-mail
+ * corporativo é ambiente hostil:
+ *
+ *   - fundo claro. O tema escuro do site vira mancha ilegível no Outlook, que
+ *     ignora cor de fundo em body, e alguns clientes invertem cores por conta
+ *     própria e estragam o resultado;
+ *   - tabelas com estilo inline. O Outlook renderiza com o motor do Word:
+ *     flexbox, grid e folha de estilo no cabeçalho são descartados;
+ *   - nenhuma imagem, nenhuma fonte externa, nenhum rastreador. Imagem é
+ *     bloqueada por padrão e deixa buraco, e recurso externo pesa no filtro;
+ *   - fontes do sistema, largura máxima de 600px, tudo curto. O corte do Gmail
+ *     em 102KB nunca chega perto.
+ *
+ * O texto puro que acompanha não é enfeite: é o que aparece em leitor de tela,
+ * em relógio e em cliente que recusa HTML.
+ */
 function montarHtml(m: EmailParaEnviar): string {
-  const corpo = escapar(m.corpo).replace(/\n/g, "<br>");
-  const titulo = m.numero ? `Chamado #${m.numero}` : "Suporte AB Solutions";
+  const paragrafos = escapar(m.corpo)
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map(
+      (p) =>
+        `<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#1f2937;">${p.replace(/\n/g, "<br>")}</p>`,
+    )
+    .join("");
+
+  const cabecalho = m.numero ? `Chamado #${m.numero}` : "Suporte";
+  const assuntoLimpo = escapar(m.assunto.replace(/^\[#\d+\]\s*/, ""));
+  const divisor =
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">' +
+    '<tr><td style="padding:18px 0;">' +
+    '<div style="height:1px;background-color:#e5e7eb;line-height:1px;font-size:0;">&nbsp;</div>' +
+    "</td></tr></table>";
 
   return `<!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:24px;background:#060b18;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;margin:0 auto;">
-    <tr><td style="padding-bottom:20px;">
-      <span style="font-size:20px;font-weight:800;color:#ffffff;letter-spacing:-.01em;">AB</span>
-      <span style="font-size:20px;font-weight:800;color:#22d3ee;letter-spacing:-.01em;">&nbsp;Solutions</span>
-      <div style="font-size:12px;color:#9db0c9;margin-top:2px;">Consultoria TOTVS Fluig</div>
-    </td></tr>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
+<title>${escapar(cabecalho)}</title>
+</head>
+<body style="margin:0;padding:0;width:100%;background-color:#f1f3f6;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapar(preheader(m))}</div>
 
-    <tr><td style="background:#0e1730;border:1px solid rgba(148,183,255,.16);border-radius:14px;padding:24px;">
-      <div style="font-size:13px;color:#22d3ee;font-weight:600;letter-spacing:.06em;text-transform:uppercase;">
-        ${escapar(titulo)}
-      </div>
-      <div style="font-size:17px;color:#ffffff;font-weight:600;margin-top:6px;line-height:1.35;">
-        ${escapar(m.assunto.replace(/^\[#\d+\]\s*/, ""))}
-      </div>
-      ${m.cliente ? `<div style="font-size:12px;color:#9db0c9;margin-top:4px;">${escapar(m.cliente)}</div>` : ""}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f1f3f6;">
+    <tr>
+      <td align="center" style="padding:24px 12px;">
 
-      <hr style="border:0;border-top:1px solid rgba(148,183,255,.16);margin:18px 0;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:100%;">
+          <tr>
+            <td style="padding:0 4px 12px;font-family:${FONTE};font-size:13px;color:#6b7280;">
+              <strong style="color:#111827;font-size:15px;">AB Solutions</strong>
+              &nbsp;&middot;&nbsp; Suporte TOTVS Fluig
+            </td>
+          </tr>
 
-      ${m.autor ? `<div style="font-size:13px;color:#9db0c9;margin-bottom:8px;"><strong style="color:#e6edf7;">${escapar(m.autor)}</strong> escreveu:</div>` : ""}
-      <div style="font-size:15px;color:#e6edf7;line-height:1.65;">${corpo}</div>
-    </td></tr>
+          <tr>
+            <td style="background-color:#ffffff;border:1px solid #e2e5ea;border-radius:8px;padding:24px;font-family:${FONTE};">
 
-    <tr><td style="padding-top:16px;font-size:12px;color:#64748b;line-height:1.6;">
-      Responda este e-mail para continuar no mesmo chamado — sua resposta entra automaticamente no histórico.
-      <br>AB Solutions · (61) 92003-5859 · www.absolutionsconsultoria.com.br
-    </td></tr>
+              <p style="margin:0 0 4px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#0e7490;">
+                ${escapar(cabecalho)}
+              </p>
+              <p style="margin:0;font-size:18px;font-weight:600;line-height:1.35;color:#111827;">
+                ${assuntoLimpo}
+              </p>
+              ${m.cliente ? `<p style="margin:4px 0 0;font-size:13px;color:#6b7280;">${escapar(m.cliente)}</p>` : ""}
+
+              ${divisor}
+
+              ${m.autor ? `<p style="margin:0 0 12px;font-size:13px;color:#6b7280;"><strong style="color:#111827;">${escapar(m.autor)}</strong> escreveu:</p>` : ""}
+              ${paragrafos || '<p style="margin:0;font-size:15px;line-height:1.6;color:#1f2937;">&nbsp;</p>'}
+
+              ${divisor}
+
+              <p style="margin:0;font-size:13px;line-height:1.5;color:#6b7280;">
+                Responda este e-mail para continuar no mesmo chamado. Sua resposta entra
+                automaticamente no histórico e a equipe é avisada.
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:16px 4px 0;font-family:${FONTE};font-size:12px;line-height:1.6;color:#9099a8;">
+              AB Solutions &middot; Consultoria TOTVS Fluig<br>
+              ${TELEFONE} &middot; ${SITE}
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
   </table>
-</body></html>`;
+</body>
+</html>`;
 }
 
+/**
+ * Versão em texto puro.
+ *
+ * As réguas não são enfeite: quase todo cliente de e-mail cita a mensagem
+ * inteira ao responder, e é por marcadores assim que a citação é reconhecida e
+ * removida quando a resposta volta para o chamado.
+ */
 function montarTexto(m: EmailParaEnviar): string {
-  const cabecalho = m.autor ? `${m.autor} escreveu:\n\n` : "";
-  return (
-    `${cabecalho}${m.corpo}\n\n` +
-    `---\n` +
-    `Responda este e-mail para continuar no mesmo chamado.\n` +
-    `AB Solutions - (61) 92003-5859 - www.absolutionsconsultoria.com.br\n`
-  );
+  const regua = "----------------------------------------";
+  const linhas: (string | null)[] = [
+    m.numero ? `Chamado #${m.numero}` : "Suporte AB Solutions",
+    m.assunto.replace(/^\[#\d+\]\s*/, ""),
+    m.cliente ?? null,
+    "",
+    regua,
+    "",
+    m.autor ? `${m.autor} escreveu:` : null,
+    m.autor ? "" : null,
+    m.corpo.trim(),
+    "",
+    regua,
+    "",
+    "Responda este e-mail para continuar no mesmo chamado.",
+    "",
+    "AB Solutions - Consultoria TOTVS Fluig",
+    `${TELEFONE} - ${SITE}`,
+    "",
+  ];
+
+  return linhas
+    .filter((l): l is string => l !== null)
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n");
 }
 
-async function comLimiteDeTempo<T>(tarefa: (sinal: AbortSignal) => Promise<T>, ondeFalhou: string): Promise<T> {
+async function comLimiteDeTempo<T>(
+  tarefa: (sinal: AbortSignal) => Promise<T>,
+  ondeFalhou: string,
+): Promise<T> {
   const controle = new AbortController();
   const timer = setTimeout(() => controle.abort(), TEMPO_LIMITE_MS);
   try {
@@ -128,6 +248,7 @@ async function comLimiteDeTempo<T>(tarefa: (sinal: AbortSignal) => Promise<T>, o
 }
 
 async function enviarPorResend(m: EmailParaEnviar): Promise<void> {
+  const raiz = raizDaConversa(m);
   await comLimiteDeTempo(async (signal) => {
     const r = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -143,6 +264,7 @@ async function enviarPorResend(m: EmailParaEnviar): Promise<void> {
         subject: m.assunto,
         text: montarTexto(m),
         html: montarHtml(m),
+        ...(raiz ? { headers: { References: raiz, "In-Reply-To": raiz } } : {}),
       }),
     });
     if (!r.ok) throw new Error(`Resend recusou (${r.status}): ${(await r.text()).slice(0, 200)}`);
@@ -160,6 +282,19 @@ async function enviarPorMailgun(m: EmailParaEnviar): Promise<void> {
   form.set("subject", m.assunto);
   form.set("text", montarTexto(m));
   form.set("html", montarHtml(m));
+
+  const raiz = raizDaConversa(m);
+  if (raiz) {
+    form.set("h:References", raiz);
+    form.set("h:In-Reply-To", raiz);
+  }
+
+  // Aviso de chamado não é campanha: nada de rastrear abertura nem reescrever
+  // link. Pixel de rastreio e link mascarado são exatamente o que filtro
+  // corporativo procura, e aqui o ganho seria zero.
+  form.set("o:tracking", "no");
+  form.set("o:tracking-clicks", "no");
+  form.set("o:tracking-opens", "no");
 
   await comLimiteDeTempo(async (signal) => {
     const r = await fetch(`https://api.mailgun.net/v3/${dominio}/messages`, {
@@ -192,6 +327,8 @@ async function enviarPorSmtp(m: EmailParaEnviar): Promise<void> {
     socketTimeout: TEMPO_LIMITE_MS,
   });
 
+  const raiz = raizDaConversa(m);
+
   await transporte.sendMail({
     from: remetente(),
     to: m.para.join(", "),
@@ -199,6 +336,7 @@ async function enviarPorSmtp(m: EmailParaEnviar): Promise<void> {
     subject: m.assunto,
     text: montarTexto(m),
     html: montarHtml(m),
+    ...(raiz ? { references: raiz, inReplyTo: raiz } : {}),
   });
 }
 

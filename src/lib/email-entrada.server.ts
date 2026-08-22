@@ -13,8 +13,9 @@
  * Railway nunca guarda uma credencial que ignora as políticas de RLS.
  *
  * Variáveis:
- *   MAILGUN_SIGNING_KEY       chave de assinatura de webhook (não é a de API)
- *   WEBHOOK_EMAIL_SEGREDO     mesmo valor gravado em app_segredos
+ *   WEBHOOK_EMAIL_SEGREDO     mesmo valor gravado em app_segredos; também
+ *                             autoriza a chamada quando vem como ?k= na URL
+ *   MAILGUN_SIGNING_KEY       opcional, e melhor: assinatura HMAC do provedor
  *   SUPABASE_URL
  *   SUPABASE_PUBLISHABLE_KEY
  */
@@ -49,6 +50,60 @@ function assinaturaConfere(
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+/** Comparação de segredos em tempo constante, tolerante a tamanhos diferentes. */
+function iguais(a: string, b: string): boolean {
+  const x = Buffer.from(a, "utf8");
+  const y = Buffer.from(b, "utf8");
+  return x.length === y.length && timingSafeEqual(x, y);
+}
+
+/**
+ * Diz se a requisição veio mesmo do provedor. Devolve a recusa, ou undefined
+ * quando está tudo certo.
+ *
+ * Dois modos, e o primeiro que servir vale:
+ *
+ *   1. assinatura HMAC do Mailgun, quando MAILGUN_SIGNING_KEY existe. É o
+ *      caminho forte: prova a origem e não se repete;
+ *   2. segredo na própria URL da rota (`?k=...`), conferido contra
+ *      WEBHOOK_EMAIL_SEGREDO. Mais fraco — a URL aparece na configuração do
+ *      provedor e pode entrar em log — mas evita ter que copiar uma segunda
+ *      chave só para o webhook subir, e o segredo já é necessário mesmo para
+ *      falar com o banco.
+ *
+ * Vale a pena configurar a assinatura quando der. Enquanto não der, o segredo
+ * na URL é bem melhor do que deixar a rota aberta.
+ */
+function conferirOrigem(
+  request: Request,
+  campos: URLSearchParams,
+  chaveAssinatura: string | undefined,
+  segredo: string | undefined,
+): Response | undefined {
+  const timestamp = campos.get("timestamp") ?? "";
+  const token = campos.get("token") ?? "";
+  const assinatura = campos.get("signature") ?? "";
+
+  if (chaveAssinatura && assinatura) {
+    if (!assinaturaConfere(timestamp, token, assinatura, chaveAssinatura)) {
+      console.warn("[email-entrada] assinatura inválida; requisição descartada");
+      return new Response("assinatura inválida", { status: 401 });
+    }
+    const idade = Math.abs(Date.now() / 1000 - Number(timestamp));
+    if (!Number.isFinite(idade) || idade > VALIDADE_ASSINATURA_S) {
+      console.warn(`[email-entrada] assinatura fora da janela (${Math.round(idade)}s)`);
+      return new Response("assinatura expirada", { status: 401 });
+    }
+    return undefined;
+  }
+
+  const naUrl = new URL(request.url).searchParams.get("k") ?? "";
+  if (segredo && naUrl && iguais(naUrl, segredo)) return undefined;
+
+  console.warn("[email-entrada] requisição sem assinatura válida nem segredo na URL");
+  return new Response("origem não confirmada", { status: 401 });
+}
+
 /** Extrai numero e token de caixa+t1000-abcdef@dominio. */
 export function lerEnderecoDoChamado(
   destinatario: string,
@@ -72,6 +127,10 @@ export function limparCorpo(texto: string): string {
     /^\s*_{5,}\s*$/m,
     /^\s*De:\s.+$/im,
     /^\s*From:\s.+$/im,
+    // A régua do nosso próprio modelo em texto puro. Quando o cliente responde
+    // citando a mensagem inteira, é aqui que a citação começa.
+    /^\s*-{20,}\s*$/m,
+    /^\s*Chamado #\d+\s*$/m,
   ];
 
   let corte = texto.length;
@@ -268,9 +327,10 @@ export async function tratarEmailRecebido(request: Request): Promise<Response | 
   if (request.method !== "POST") return new Response("método não permitido", { status: 405 });
 
   try {
-    const chave = env("MAILGUN_SIGNING_KEY");
-    if (!chave) {
-      console.error("[email-entrada] MAILGUN_SIGNING_KEY ausente: recusando por segurança");
+    const chaveAssinatura = env("MAILGUN_SIGNING_KEY");
+    const segredo = env("WEBHOOK_EMAIL_SEGREDO");
+    if (!chaveAssinatura && !segredo) {
+      console.error("[email-entrada] sem MAILGUN_SIGNING_KEY nem WEBHOOK_EMAIL_SEGREDO: recusando");
       return new Response("webhook não configurado", { status: 503 });
     }
 
@@ -281,20 +341,8 @@ export async function tratarEmailRecebido(request: Request): Promise<Response | 
       if (typeof valor === "string") campos.append(nomeCampo, valor);
     }
 
-    const timestamp = campos.get("timestamp") ?? "";
-    const token = campos.get("token") ?? "";
-    const assinatura = campos.get("signature") ?? "";
-
-    if (!assinaturaConfere(timestamp, token, assinatura, chave)) {
-      console.warn("[email-entrada] assinatura inválida; requisição descartada");
-      return new Response("assinatura inválida", { status: 401 });
-    }
-
-    const idade = Math.abs(Date.now() / 1000 - Number(timestamp));
-    if (!Number.isFinite(idade) || idade > VALIDADE_ASSINATURA_S) {
-      console.warn(`[email-entrada] assinatura fora da janela (${Math.round(idade)}s)`);
-      return new Response("assinatura expirada", { status: 401 });
-    }
+    const negado = conferirOrigem(request, campos, chaveAssinatura, segredo);
+    if (negado) return negado;
 
     const { status, corpo } = await registrar(campos);
     return new Response(corpo, {
