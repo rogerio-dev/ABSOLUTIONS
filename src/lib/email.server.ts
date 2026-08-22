@@ -1,15 +1,21 @@
 /**
- * Envio de e-mail por SMTP. Roda apenas no servidor.
+ * Envio de e-mail. Roda apenas no servidor.
  *
- * Configuração esperada no ambiente (KingHost):
- *   SMTP_HOST=smtp.kinghost.net
- *   SMTP_PORT=465
- *   SMTP_USER=suporte@absolutionsconsultoria.com.br
- *   SMTP_PASS=...
- *   SMTP_FROM_NOME=Suporte AB Solutions        (opcional)
+ * Dois caminhos, escolhidos pelo que estiver configurado:
  *
- * O remetente precisa ser a mesma conta autenticada: servidores SMTP
- * costumam recusar um From diferente do usuário que fez login.
+ *   1. API HTTPS (recomendado em produção)
+ *        EMAIL_API_KEY=...                 chave do provedor
+ *        EMAIL_API_PROVEDOR=resend         resend | mailgun
+ *        EMAIL_REMETENTE=Suporte AB Solutions <suporte@absolutionsconsultoria.com.br>
+ *        MAILGUN_DOMINIO=...               só para o Mailgun
+ *
+ *   2. SMTP (bom para desenvolvimento; a Railway bloqueia as portas de SMTP
+ *      fora do plano Pro, então em produção prefira a API)
+ *        SMTP_HOST=smtp.kinghost.net
+ *        SMTP_PORT=465
+ *        SMTP_USER=...
+ *        SMTP_PASS=...
+ *        SMTP_FROM_NOME=Suporte AB Solutions
  */
 
 export type EmailParaEnviar = {
@@ -22,9 +28,31 @@ export type EmailParaEnviar = {
   numero?: number | undefined;
 };
 
+const TEMPO_LIMITE_MS = 15_000;
+
+function env(nome: string): string | undefined {
+  const v = process.env[nome];
+  return v && v.trim() ? v.trim() : undefined;
+}
+
+export type MeioDeEnvio = "api" | "smtp" | "nenhum";
+
+export function meioConfigurado(): MeioDeEnvio {
+  if (env("EMAIL_API_KEY")) return "api";
+  if (env("SMTP_HOST") && env("SMTP_USER") && env("SMTP_PASS")) return "smtp";
+  return "nenhum";
+}
+
+/** Mantido para compatibilidade com quem só pergunta "dá para enviar?". */
 export function smtpConfigurado(): boolean {
-  const e = process.env;
-  return Boolean(e["SMTP_HOST"] && e["SMTP_USER"] && e["SMTP_PASS"]);
+  return meioConfigurado() !== "nenhum";
+}
+
+function remetente(): string {
+  const explicito = env("EMAIL_REMETENTE");
+  if (explicito) return explicito;
+  const conta = env("SMTP_USER") ?? "suporte@absolutionsconsultoria.com.br";
+  return `${env("SMTP_FROM_NOME") ?? "Suporte AB Solutions"} <${conta}>`;
 }
 
 function escapar(texto: string): string {
@@ -84,35 +112,109 @@ function montarTexto(m: EmailParaEnviar): string {
   );
 }
 
-/** Envia uma mensagem. Lança se o SMTP não estiver configurado ou recusar. */
-export async function enviarEmail(m: EmailParaEnviar): Promise<void> {
-  if (!smtpConfigurado()) {
-    throw new Error("SMTP não configurado: defina SMTP_HOST, SMTP_USER e SMTP_PASS.");
+async function comLimiteDeTempo<T>(tarefa: (sinal: AbortSignal) => Promise<T>, ondeFalhou: string): Promise<T> {
+  const controle = new AbortController();
+  const timer = setTimeout(() => controle.abort(), TEMPO_LIMITE_MS);
+  try {
+    return await tarefa(controle.signal);
+  } catch (e) {
+    if (controle.signal.aborted) {
+      throw new Error(`${ondeFalhou}: sem resposta em ${TEMPO_LIMITE_MS / 1000}s.`);
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
   }
+}
 
+async function enviarPorResend(m: EmailParaEnviar): Promise<void> {
+  await comLimiteDeTempo(async (signal) => {
+    const r = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      signal,
+      headers: {
+        Authorization: `Bearer ${env("EMAIL_API_KEY")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: remetente(),
+        to: m.para,
+        reply_to: m.responderPara,
+        subject: m.assunto,
+        text: montarTexto(m),
+        html: montarHtml(m),
+      }),
+    });
+    if (!r.ok) throw new Error(`Resend recusou (${r.status}): ${(await r.text()).slice(0, 200)}`);
+  }, "Resend");
+}
+
+async function enviarPorMailgun(m: EmailParaEnviar): Promise<void> {
+  const dominio = env("MAILGUN_DOMINIO");
+  if (!dominio) throw new Error("Defina MAILGUN_DOMINIO para usar o Mailgun.");
+
+  const form = new URLSearchParams();
+  form.set("from", remetente());
+  for (const p of m.para) form.append("to", p);
+  if (m.responderPara) form.set("h:Reply-To", m.responderPara);
+  form.set("subject", m.assunto);
+  form.set("text", montarTexto(m));
+  form.set("html", montarHtml(m));
+
+  await comLimiteDeTempo(async (signal) => {
+    const r = await fetch(`https://api.mailgun.net/v3/${dominio}/messages`, {
+      method: "POST",
+      signal,
+      headers: {
+        Authorization: `Basic ${Buffer.from(`api:${env("EMAIL_API_KEY")}`).toString("base64")}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: form.toString(),
+    });
+    if (!r.ok) throw new Error(`Mailgun recusou (${r.status}): ${(await r.text()).slice(0, 200)}`);
+  }, "Mailgun");
+}
+
+async function enviarPorSmtp(m: EmailParaEnviar): Promise<void> {
   // Importado aqui dentro para não vazar dependência de servidor no pacote do navegador.
   const nodemailer = await import("nodemailer");
 
-  const porta = Number(process.env["SMTP_PORT"] ?? 465);
+  const porta = Number(env("SMTP_PORT") ?? 465);
   const transporte = nodemailer.createTransport({
-    host: process.env["SMTP_HOST"]!,
+    host: env("SMTP_HOST")!,
     port: porta,
     secure: porta === 465, // 465 usa TLS direto; 587 negocia com STARTTLS
-    auth: {
-      user: process.env["SMTP_USER"]!,
-      pass: process.env["SMTP_PASS"]!,
-    },
+    auth: { user: env("SMTP_USER")!, pass: env("SMTP_PASS")! },
+    // Sem estes limites a conexão fica pendurada quando a porta está bloqueada,
+    // e a requisição nunca retorna — foi o que aconteceu na Railway.
+    connectionTimeout: TEMPO_LIMITE_MS,
+    greetingTimeout: 10_000,
+    socketTimeout: TEMPO_LIMITE_MS,
   });
 
-  const remetente = process.env["SMTP_USER"]!;
-  const nomeRemetente = process.env["SMTP_FROM_NOME"] ?? "Suporte AB Solutions";
-
   await transporte.sendMail({
-    from: `"${nomeRemetente}" <${remetente}>`,
+    from: remetente(),
     to: m.para.join(", "),
-    replyTo: m.responderPara ?? remetente,
+    replyTo: m.responderPara ?? env("SMTP_USER"),
     subject: m.assunto,
     text: montarTexto(m),
     html: montarHtml(m),
   });
+}
+
+/** Envia uma mensagem pelo meio configurado. Lança se não houver nenhum. */
+export async function enviarEmail(m: EmailParaEnviar): Promise<void> {
+  const meio = meioConfigurado();
+
+  if (meio === "api") {
+    const provedor = (env("EMAIL_API_PROVEDOR") ?? "resend").toLowerCase();
+    if (provedor === "mailgun") return enviarPorMailgun(m);
+    return enviarPorResend(m);
+  }
+
+  if (meio === "smtp") return enviarPorSmtp(m);
+
+  throw new Error(
+    "Nenhum meio de envio configurado: defina EMAIL_API_KEY (recomendado) ou SMTP_HOST/USER/PASS.",
+  );
 }

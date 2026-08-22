@@ -66,25 +66,36 @@ E-mail e senha via Supabase. O botão "Continuar com Google" usa o OAuth nativo 
 
 ## Suporte: envio de e-mail
 
-O módulo de tickets envia por SMTP. Configure no ambiente (Railway → Variables):
+O envio aceita dois caminhos e escolhe pelo que estiver configurado.
+
+**API HTTPS — recomendado em produção.** A Railway bloqueia portas de SMTP fora do plano Pro, então SMTP simplesmente não conecta lá.
+
+| Variável | Descrição |
+|---|---|
+| `EMAIL_API_KEY` | chave do provedor |
+| `EMAIL_API_PROVEDOR` | `resend` (padrão) ou `mailgun` |
+| `EMAIL_REMETENTE` | `Suporte AB Solutions <suporte@absolutionsconsultoria.com.br>` |
+| `MAILGUN_DOMINIO` | apenas para o Mailgun |
+
+**SMTP — bom para desenvolvimento local:**
 
 | Variável | Valor para a KingHost |
 |---|---|
 | `SMTP_HOST` | `smtp.kinghost.net` |
 | `SMTP_PORT` | `465` |
-| `SMTP_USER` | a conta de e-mail, ex.: `suporte@absolutionsconsultoria.com.br` |
+| `SMTP_USER` | a conta de e-mail |
 | `SMTP_PASS` | a senha dessa conta |
-| `SMTP_FROM_NOME` | opcional, ex.: `Suporte AB Solutions` |
+| `SMTP_FROM_NOME` | opcional |
 
-O remetente é sempre o `SMTP_USER`: servidores SMTP recusam um `From` diferente da conta autenticada. O que muda por chamado é o **Reply-To**, que aponta para o endereço de resposta daquele ticket.
+O remetente por SMTP é sempre o `SMTP_USER`: servidores SMTP recusam um `From` diferente da conta autenticada. O que muda por chamado é o **Reply-To**, que aponta para o endereço daquele ticket.
 
-Para conferir antes de subir:
+Para conferir o SMTP antes de subir:
 
 ```bash
 SMTP_HOST=smtp.kinghost.net SMTP_PORT=465 SMTP_USER=... SMTP_PASS=... node scripts/testar-smtp.mjs
 ```
 
-Sem as variáveis, o sistema continua funcionando: as mensagens ficam na fila (`ticket_email_outbox`) e saem assim que o SMTP for configurado — nada se perde.
+Sem nenhum meio configurado, o sistema continua funcionando: as mensagens ficam na fila (`ticket_email_outbox`) e saem quando houver como enviar — nada se perde. Abrir a tela de suporte tenta despachar o que estiver pendente.
 
 ### Recebimento de respostas
 

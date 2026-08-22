@@ -30,14 +30,14 @@ export const despacharEmails = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((entrada: { ticketId?: string | undefined }) => entrada)
   .handler(async ({ data, context }): Promise<ResultadoDespacho> => {
-    const { smtpConfigurado, enviarEmail } = await import("@/lib/email.server");
+    const { meioConfigurado, enviarEmail } = await import("@/lib/email.server");
 
-    if (!smtpConfigurado()) {
+    if (meioConfigurado() === "nenhum") {
       return {
         enviados: 0,
         falhas: 0,
         configurado: false,
-        detalhe: "SMTP não configurado; as mensagens seguem na fila.",
+        detalhe: "Nenhum meio de envio configurado; as mensagens seguem na fila.",
       };
     }
 
