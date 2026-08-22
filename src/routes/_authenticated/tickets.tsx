@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Inbox, LifeBuoy, Plus, Search } from "lucide-react";
+import { Inbox, LifeBuoy, MailWarning, Plus, RefreshCw, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell, NoAccess, PageHeader } from "@/components/AppShell";
 import { PrioridadeTag, SlaTag, StatusTag, quandoRelativo } from "@/components/TicketBits";
@@ -89,6 +89,45 @@ function Tickets() {
     },
   });
 
+  // Ao abrir a fila, tenta despachar o que ficou pendente. Sem isso, uma queda
+  // momentanea do SMTP deixaria mensagens paradas ate alguem responder algo.
+  const despacho = useQuery({
+    queryKey: ["despachar-emails"],
+    enabled: !!me?.isStaff,
+    staleTime: 60_000,
+    retry: false,
+    queryFn: async () => {
+      const r = await despacharEmails({ data: {} });
+      if (r.enviados > 0) qc.invalidateQueries({ queryKey: ["emails-pendentes"] });
+      return r;
+    },
+  });
+
+  const { data: pendentes } = useQuery({
+    queryKey: ["emails-pendentes"],
+    enabled: !!me?.isStaff,
+    refetchInterval: 120_000,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("ticket_email_outbox")
+        .select("id", { count: "exact", head: true })
+        .is("enviado_em", null);
+      return count ?? 0;
+    },
+  });
+
+  const reenviar = useMutation({
+    mutationFn: async () => despacharEmails({ data: {} }),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["emails-pendentes"] });
+      if (!r.configurado) toast.error("SMTP nao configurado no ambiente.");
+      else if (r.enviados) toast.success(`${r.enviados} e-mail(s) enviado(s).`);
+      else if (r.falhas) toast.error(`${r.falhas} falha(s) no envio. Veja o log do servidor.`);
+      else toast.info("Nada pendente na fila.");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const visiveis = useMemo(() => {
     let lista = tickets ?? [];
     if (filtroStatus === "abertos") lista = lista.filter((t) => !ENCERRADOS.includes(t.status));
@@ -164,6 +203,26 @@ function Tickets() {
               Solutions para ativar.
             </p>
           </div>
+        </div>
+      )}
+
+      {me.isStaff && (pendentes ?? 0) > 0 && (
+        <div className="panel mb-4 flex flex-wrap items-center gap-3 border-amber-500/30 bg-amber-500/5 p-4">
+          <MailWarning className="h-5 w-5 shrink-0 text-amber-300" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-amber-200">
+              {pendentes} mensagem(ns) aguardando envio por e-mail
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {despacho.data?.configurado === false
+                ? "O SMTP nao esta configurado no ambiente; as mensagens ficam guardadas ate ele existir."
+                : "O envio falhou nas ultimas tentativas. Nada foi perdido."}
+            </p>
+          </div>
+          <Button size="sm" variant="outline" disabled={reenviar.isPending} onClick={() => reenviar.mutate()}>
+            <RefreshCw className={reenviar.isPending ? "mr-2 h-3.5 w-3.5 animate-spin" : "mr-2 h-3.5 w-3.5"} />
+            Reenviar
+          </Button>
         </div>
       )}
 
