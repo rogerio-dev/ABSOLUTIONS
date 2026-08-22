@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { despacharEmails } from "@/lib/suporte-email";
 import { useMe } from "@/lib/auth";
 import { ENCERRADOS, PRIORIDADES, TICKET_STATUS, lerEmails, urgencia } from "@/lib/suporte";
 
@@ -329,6 +330,7 @@ function NovoChamado({
           .from("ticket_watchers")
           .insert(validos.map((e) => ({ ticket_id: novo.id, email: e })));
       }
+      await despacharEmails({ data: { ticketId: novo.id } }).catch(() => undefined);
       return novo.numero;
     },
     onSuccess: (numero) => {

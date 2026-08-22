@@ -63,6 +63,33 @@ Migrações em `supabase/migrations/`.
 
 E-mail e senha via Supabase. O botão "Continuar com Google" usa o OAuth nativo do Supabase — exige habilitar o provedor em **Authentication → Providers** no painel. Sem isso, o botão retorna erro e apenas o login por senha funciona.
 
+
+## Suporte: envio de e-mail
+
+O módulo de tickets envia por SMTP. Configure no ambiente (Railway → Variables):
+
+| Variável | Valor para a KingHost |
+|---|---|
+| `SMTP_HOST` | `smtp.kinghost.net` |
+| `SMTP_PORT` | `465` |
+| `SMTP_USER` | a conta de e-mail, ex.: `suporte@absolutionsconsultoria.com.br` |
+| `SMTP_PASS` | a senha dessa conta |
+| `SMTP_FROM_NOME` | opcional, ex.: `Suporte AB Solutions` |
+
+O remetente é sempre o `SMTP_USER`: servidores SMTP recusam um `From` diferente da conta autenticada. O que muda por chamado é o **Reply-To**, que aponta para o endereço de resposta daquele ticket.
+
+Para conferir antes de subir:
+
+```bash
+SMTP_HOST=smtp.kinghost.net SMTP_PORT=465 SMTP_USER=... SMTP_PASS=... node scripts/testar-smtp.mjs
+```
+
+Sem as variáveis, o sistema continua funcionando: as mensagens ficam na fila (`ticket_email_outbox`) e saem assim que o SMTP for configurado — nada se perde.
+
+### Recebimento de respostas
+
+Cada chamado tem um endereço próprio, no formato `suporte+t1000-<token>@absolutionsconsultoria.com.br`. Para as respostas virarem comentário automaticamente, falta um provedor que receba e-mail e chame um webhook (Mailgun, Postmark ou SendGrid). A função `registrar_resposta_por_email` no banco já está pronta para ser chamada por esse webhook.
+
 ## Estrutura
 
 ```

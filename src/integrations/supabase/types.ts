@@ -1050,6 +1050,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      emails_pendentes: {
+        Args: { _ticket?: string | null; _limite?: number }
+        Returns: {
+          id: string
+          ticket_numero: number
+          assunto: string
+          corpo: string
+          destinatarios: string[]
+          responder_para: string
+          autor_nome: string | null
+          cliente: string | null
+        }[]
+      }
+      marcar_email: { Args: { _id: string; _erro?: string | null }; Returns: undefined }
+      endereco_resposta: { Args: { _ticket: string }; Returns: string }
+      acompanho_ticket: { Args: { _ticket: string }; Returns: boolean }
+      meu_suporte_habilitado: { Args: never; Returns: boolean }
+      meu_email: { Args: never; Returns: string }
+      sou_participante: { Args: { _task: string }; Returns: boolean }
       client_of_project: { Args: { _project_id: string }; Returns: string }
       client_of_task: { Args: { _task_id: string }; Returns: string }
       has_role: {
@@ -1075,6 +1094,10 @@ export type Database = {
         | "perdido"
       meeting_status: "solicitada" | "agendada" | "realizada" | "cancelada"
       task_status: "backlog" | "todo" | "doing" | "review" | "done"
+      ticket_status: "novo" | "em_atendimento" | "aguardando_cliente" | "resolvido" | "fechado"
+      ticket_prioridade: "critica" | "alta" | "media" | "baixa"
+      ticket_canal: "portal" | "email" | "interno"
+      mensagem_tipo: "publica" | "nota_interna" | "sistema"
     }
     CompositeTypes: {
       [_ in never]: never

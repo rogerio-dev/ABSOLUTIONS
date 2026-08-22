@@ -8,6 +8,7 @@ import { AppShell, NoAccess } from "@/components/AppShell";
 import { PrioridadeTag, SlaTag, StatusTag, iniciaisDe, quandoRelativo } from "@/components/TicketBits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { despacharEmails } from "@/lib/suporte-email";
 import { useMe } from "@/lib/auth";
 import { dt } from "@/lib/crm";
 import { ENCERRADOS, PRIORIDADES, TICKET_STATUS, lerEmails, type PrioridadeId, type TicketStatusId } from "@/lib/suporte";
@@ -93,6 +94,8 @@ function TicketDetalhe() {
         autor_email: me!.email,
       });
       if (error) throw error;
+      // Entrega imediata: sem isso a mensagem so sairia no proximo disparo.
+      if (!interna) await despacharEmails({ data: { ticketId: id } }).catch(() => undefined);
     },
     onSuccess: () => {
       setTexto("");
