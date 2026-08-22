@@ -183,12 +183,13 @@ export type Database = {
           assunto: string
           descricao: string | null
           prioridade: "critica" | "alta" | "media" | "baixa"
-          status: "novo" | "em_atendimento" | "aguardando_cliente" | "resolvido" | "fechado"
+          status: "novo" | "em_atendimento" | "aguardando_cliente" | "em_espera" | "resolvido" | "fechado"
           canal: "portal" | "email" | "interno"
           solicitante_user_id: string | null
           solicitante_nome: string | null
           solicitante_email: string
           responsavel_id: string | null
+          assumido_em: string | null
           aberto_em: string
           prazo_primeira_resposta: string | null
           prazo_resolucao: string | null
@@ -210,12 +211,13 @@ export type Database = {
           assunto: string
           descricao?: string | null
           prioridade?: "critica" | "alta" | "media" | "baixa"
-          status?: "novo" | "em_atendimento" | "aguardando_cliente" | "resolvido" | "fechado"
+          status?: "novo" | "em_atendimento" | "aguardando_cliente" | "em_espera" | "resolvido" | "fechado"
           canal?: "portal" | "email" | "interno"
           solicitante_user_id?: string | null
           solicitante_nome?: string | null
           solicitante_email: string
           responsavel_id?: string | null
+          assumido_em?: string | null
           aberto_em?: string
           prazo_primeira_resposta?: string | null
           prazo_resolucao?: string | null
@@ -237,12 +239,13 @@ export type Database = {
           assunto?: string
           descricao?: string | null
           prioridade?: "critica" | "alta" | "media" | "baixa"
-          status?: "novo" | "em_atendimento" | "aguardando_cliente" | "resolvido" | "fechado"
+          status?: "novo" | "em_atendimento" | "aguardando_cliente" | "em_espera" | "resolvido" | "fechado"
           canal?: "portal" | "email" | "interno"
           solicitante_user_id?: string | null
           solicitante_nome?: string | null
           solicitante_email?: string
           responsavel_id?: string | null
+          assumido_em?: string | null
           aberto_em?: string
           prazo_primeira_resposta?: string | null
           prazo_resolucao?: string | null
@@ -1067,6 +1070,17 @@ export type Database = {
         }[]
       }
       marcar_email: { Args: { _id: string; _erro?: string | null }; Returns: undefined }
+      agentes_de_suporte: {
+        Args: never
+        Returns: {
+          id: string
+          nome: string | null
+          email: string | null
+          papel: Database["public"]["Enums"]["app_role"]
+        }[]
+      }
+      is_suporte: { Args: never; Returns: boolean }
+      is_analista: { Args: never; Returns: boolean }
       registrar_resposta_de_webhook: {
         Args: {
           _segredo: string
@@ -1115,7 +1129,7 @@ export type Database = {
       task_visivel_cliente: { Args: { _task_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "interno" | "cliente"
+      app_role: "admin" | "interno" | "analista" | "cliente"
       deal_stage:
         | "novo"
         | "contatado"
@@ -1126,7 +1140,7 @@ export type Database = {
         | "perdido"
       meeting_status: "solicitada" | "agendada" | "realizada" | "cancelada"
       task_status: "backlog" | "todo" | "doing" | "review" | "done"
-      ticket_status: "novo" | "em_atendimento" | "aguardando_cliente" | "resolvido" | "fechado"
+      ticket_status: "novo" | "em_atendimento" | "aguardando_cliente" | "em_espera" | "resolvido" | "fechado"
       ticket_prioridade: "critica" | "alta" | "media" | "baixa"
       ticket_canal: "portal" | "email" | "interno"
       mensagem_tipo: "publica" | "nota_interna" | "sistema"
@@ -1257,7 +1271,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "interno", "cliente"],
+      app_role: ["admin", "interno", "analista", "cliente"],
       deal_stage: [
         "novo",
         "contatado",

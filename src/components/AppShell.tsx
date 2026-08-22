@@ -26,6 +26,11 @@ const staffNav = [
   { to: "/equipe", label: "Equipe & Acessos", icon: UsersRound },
 ] as const;
 
+/** Analista só trata chamados: o CRM não aparece nem como link morto. */
+const analistaNav = [
+  { to: "/tickets", label: "Suporte", icon: LifeBuoy },
+] as const;
+
 const clientNav = [
   { to: "/portal", label: "Meu projeto", icon: FolderKanban },
   { to: "/tickets", label: "Suporte", icon: LifeBuoy },
@@ -36,7 +41,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { data: me } = useMe();
   const signOut = useSignOut();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const nav = me?.isStaff ? staffNav : clientNav;
+  const nav = me?.isStaff ? staffNav : me?.isAnalista ? analistaNav : clientNav;
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -73,7 +78,13 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="mt-4 rounded-lg border border-sidebar-border p-3">
           <p className="truncate text-sm font-medium">{me?.fullName ?? "—"}</p>
           <p className="truncate text-xs text-muted-foreground">
-            {me?.isAdmin ? "Administrador" : me?.isStaff ? "Equipe interna" : "Cliente"}
+            {me?.isAdmin
+              ? "Administrador"
+              : me?.isStaff
+                ? "Equipe interna"
+                : me?.isAnalista
+                  ? "Analista de suporte"
+                  : "Cliente"}
           </p>
           <Button variant="ghost" size="sm" className="mt-2 w-full justify-start" onClick={signOut}>
             <LogOut className="mr-2 h-4 w-4" /> Sair

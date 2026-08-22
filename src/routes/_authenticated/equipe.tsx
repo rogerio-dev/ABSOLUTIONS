@@ -20,7 +20,14 @@ export const Route = createFileRoute("/_authenticated/equipe")({
   component: Equipe,
 });
 
-type Role = "admin" | "interno" | "cliente";
+type Role = "admin" | "interno" | "analista" | "cliente";
+
+const PAPEIS: { id: Role; label: string; ajuda: string }[] = [
+  { id: "admin", label: "Admin", ajuda: "Tudo, incluindo acessos e a visão de suporte por analista." },
+  { id: "interno", label: "Interno", ajuda: "CRM completo e atendimento de chamados." },
+  { id: "analista", label: "Analista", ajuda: "Só o suporte: fila, chamados e SLA. Não enxerga o CRM." },
+  { id: "cliente", label: "Cliente", ajuda: "Portal da própria empresa. Precisa estar vinculado a ela." },
+];
 
 function Equipe() {
   const { data: me, isLoading } = useMe();
@@ -79,7 +86,7 @@ function Equipe() {
 
   return (
     <AppShell>
-      <PageHeader title="Equipe & Acessos" subtitle="Defina perfis internos e libere o portal para clientes." />
+      <PageHeader title="Equipe & Acessos" subtitle="Defina perfis internos e libere o portal para clientes. Passe o mouse em um perfil para ver o que ele alcança." />
       <div className="panel divide-y divide-border">
         {(pessoas ?? []).map((p) => (
           <div key={p.id} className="flex flex-wrap items-center justify-between gap-4 p-4">
@@ -90,14 +97,15 @@ function Equipe() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {(["admin", "interno", "cliente"] as Role[]).map((r) => (
+              {PAPEIS.map((r) => (
                 <Button
-                  key={r}
+                  key={r.id}
                   size="sm"
-                  variant={p.roles.includes(r) ? "default" : "outline"}
-                  onClick={() => setRole.mutate({ userId: p.id, role: r })}
+                  title={r.ajuda}
+                  variant={p.roles.includes(r.id) ? "default" : "outline"}
+                  onClick={() => setRole.mutate({ userId: p.id, role: r.id })}
                 >
-                  {r}
+                  {r.label}
                 </Button>
               ))}
               <Input

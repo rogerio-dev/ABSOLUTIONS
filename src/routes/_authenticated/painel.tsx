@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Building2, CalendarDays, FileSignature, Target, TrendingUp, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -81,6 +81,9 @@ function Painel() {
   });
 
   if (loadingMe) return <AppShell>Carregando…</AppShell>;
+  // O analista não tem painel de CRM; o suporte é a casa dele. Redirecionar
+  // aqui cobre todos os caminhos que levam a /painel depois do login.
+  if (me?.isAnalista) return <Navigate to="/tickets" replace />;
   if (!me?.isStaff)
     return (
       <AppShell>

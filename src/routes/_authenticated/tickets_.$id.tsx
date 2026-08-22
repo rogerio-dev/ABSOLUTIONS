@@ -2,16 +2,27 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Lock, Mail, Send, UserPlus, Users } from "lucide-react";
+import { ArrowLeft, Info, Lock, Mail, Send, UserPlus, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell, NoAccess } from "@/components/AppShell";
 import { PrioridadeTag, SlaTag, StatusTag, iniciaisDe, quandoRelativo } from "@/components/TicketBits";
+import { EnviarComStatus } from "@/components/EnviarComStatus";
+import { SeletorResponsavel, useAgentes, nomeDoAgente } from "@/components/Responsavel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { despacharEmails } from "@/lib/suporte-email";
 import { useMe } from "@/lib/auth";
 import { dt } from "@/lib/crm";
-import { ENCERRADOS, PRIORIDADES, TICKET_STATUS, lerEmails, type PrioridadeId, type TicketStatusId } from "@/lib/suporte";
+import {
+  ENCERRADOS,
+  PRIORIDADES,
+  TICKET_STATUS,
+  envioSugerido,
+  lerEmails,
+  type PrioridadeId,
+  type StatusDeEnvioId,
+  type TicketStatusId,
+} from "@/lib/suporte";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/tickets_/$id")({
@@ -42,6 +53,8 @@ function TicketDetalhe() {
   const [texto, setTexto] = useState("");
   const [interna, setInterna] = useState(false);
   const [novaCopia, setNovaCopia] = useState("");
+  // Nulo enquanto o chamado não carregou; depois assume a sugestão do status atual.
+  const [statusEnvio, setStatusEnvio] = useState<StatusDeEnvioId | null>(null);
 
   const { data: t } = useQuery({
     queryKey: ["ticket", id],
@@ -82,6 +95,13 @@ function TicketDetalhe() {
     },
   });
 
+  const { data: agentes } = useAgentes(!!me?.isSuporte);
+
+  // A situação escolhida no botão de envio. Recalculada quando o chamado muda
+  // de estado por fora (resposta do cliente, colega mexendo ao mesmo tempo).
+  const statusAtual = (t?.status as string | undefined) ?? null;
+  const envio: StatusDeEnvioId = statusEnvio ?? (statusAtual ? envioSugerido(statusAtual) : "em_atendimento");
+
   const responder = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from("ticket_messages").insert({
@@ -94,14 +114,45 @@ function TicketDetalhe() {
         autor_email: me!.email,
       });
       if (error) throw error;
+
+      // O status vai junto com a resposta, e depois dela: o gatilho da mensagem
+      // move o chamado para "Aberto" ao registrar a primeira resposta, então
+      // gravar antes seria desfeito na hora.
+      if (me!.isSuporte && !interna && envio !== statusAtual) {
+        const { error: erroStatus } = await supabase.from("tickets").update({ status: envio }).eq("id", id);
+        if (erroStatus) throw erroStatus;
+      }
+
       // Entrega imediata: sem isso a mensagem so sairia no proximo disparo.
       if (!interna) await despacharEmails({ data: { ticketId: id } }).catch(() => undefined);
     },
     onSuccess: () => {
       setTexto("");
+      setStatusEnvio(null);
       qc.invalidateQueries({ queryKey: ["ticket-mensagens", id] });
       qc.invalidateQueries({ queryKey: ["ticket", id] });
+      qc.invalidateQueries({ queryKey: ["tickets"] });
       toast.success(interna ? "Nota interna registrada." : "Resposta enviada.");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const atribuir = useMutation({
+    mutationFn: async (responsavel: string | null) => {
+      const { error } = await supabase.from("tickets").update({ responsavel_id: responsavel }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, responsavel) => {
+      qc.invalidateQueries({ queryKey: ["ticket", id] });
+      qc.invalidateQueries({ queryKey: ["ticket-mensagens", id] });
+      qc.invalidateQueries({ queryKey: ["tickets"] });
+      toast.success(
+        responsavel === null
+          ? "Chamado devolvido à caixa geral."
+          : responsavel === me?.userId
+            ? "Chamado assumido."
+            : "Responsável atualizado.",
+      );
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -137,7 +188,7 @@ function TicketDetalhe() {
   });
 
   if (isLoading) return <AppShell>Carregando…</AppShell>;
-  if (!me?.isStaff && !me?.clientId)
+  if (!me?.isSuporte && !me?.clientId)
     return (
       <AppShell>
         <NoAccess />
@@ -172,6 +223,18 @@ function TicketDetalhe() {
             <p className="mt-1 text-sm text-muted-foreground">
               {(t.clients as { nome?: string } | null)?.nome} · aberto por{" "}
               {(t.solicitante_nome as string) || (t.solicitante_email as string)} · {dt(t.aberto_em as string)}
+              {me.isSuporte && (
+                <>
+                  {" · "}
+                  {nomeDoAgente(agentes, t.responsavel_id as string | null) ? (
+                    <span className="text-foreground">
+                      com {nomeDoAgente(agentes, t.responsavel_id as string | null)}
+                    </span>
+                  ) : (
+                    <span className="text-amber-300">na caixa geral</span>
+                  )}
+                </>
+              )}
             </p>
 
             {!encerrado && (
@@ -199,7 +262,17 @@ function TicketDetalhe() {
           </div>
 
           <ul className="mb-4 flex flex-col gap-3">
-            {(mensagens ?? []).map((m) => (
+            {(mensagens ?? []).map((m) =>
+              // Registro do sistema (troca de responsável, por exemplo) é linha
+              // de histórico, não conversa: entra discreto para não competir com
+              // o que o cliente escreveu.
+              m.tipo === "sistema" ? (
+                <li key={m.id} className="flex items-center gap-2 px-1 text-xs text-muted-foreground">
+                  <Info className="h-3.5 w-3.5 shrink-0" />
+                  <span>{m.corpo}</span>
+                  <span className="opacity-60">{quandoRelativo(m.created_at)}</span>
+                </li>
+              ) : (
               <li
                 key={m.id}
                 className={cn(
@@ -226,12 +299,13 @@ function TicketDetalhe() {
                 </div>
                 <p className="whitespace-pre-wrap text-sm leading-relaxed">{m.corpo}</p>
               </li>
-            ))}
+              ),
+            )}
           </ul>
 
           {/* Resposta */}
           <div className="panel p-4">
-            {me.isStaff && (
+            {me.isSuporte && (
               <div className="mb-3 flex gap-2">
                 <button
                   type="button"
@@ -267,23 +341,47 @@ function TicketDetalhe() {
               }
               className="w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm"
             />
-            <div className="mt-2 flex items-center justify-between gap-3">
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs text-muted-foreground">
-                {interna ? "O cliente não verá esta anotação." : "O solicitante e as cópias recebem por e-mail."}
+                {interna
+                  ? "O cliente não verá esta anotação."
+                  : "O solicitante e as cópias recebem por e-mail."}
               </p>
-              <Button size="sm" disabled={!texto.trim() || responder.isPending} onClick={() => responder.mutate()}>
-                <Send className="mr-2 h-4 w-4" />
-                {interna ? "Registrar nota" : "Enviar resposta"}
-              </Button>
+
+              {me.isSuporte && !interna ? (
+                <EnviarComStatus
+                  valor={envio}
+                  aoMudar={setStatusEnvio}
+                  aoEnviar={() => responder.mutate()}
+                  desabilitado={!texto.trim()}
+                  enviando={responder.isPending}
+                />
+              ) : (
+                <Button size="sm" disabled={!texto.trim() || responder.isPending} onClick={() => responder.mutate()}>
+                  <Send className="mr-2 h-4 w-4" />
+                  {interna ? "Registrar nota" : "Enviar resposta"}
+                </Button>
+              )}
             </div>
           </div>
         </div>
 
         {/* Painel lateral */}
         <aside className="flex flex-col gap-4">
-          {me.isStaff && (
+          {me.isSuporte && (
             <div className="panel p-4">
               <h2 className="mb-3 text-sm font-semibold">Atendimento</h2>
+
+              <label className="mb-1 block text-xs text-muted-foreground">Responsável</label>
+              <div className="mb-3">
+                <SeletorResponsavel
+                  valor={t.responsavel_id as string | null}
+                  agentes={agentes}
+                  euId={me.userId}
+                  ocupado={atribuir.isPending}
+                  aoMudar={(v) => atribuir.mutate(v)}
+                />
+              </div>
 
               <label className="mb-1 block text-xs text-muted-foreground">Situação</label>
               <select
@@ -325,7 +423,7 @@ function TicketDetalhe() {
             </div>
           )}
 
-          {!me.isStaff && !encerrado && (
+          {!me.isSuporte && !encerrado && (
             <div className="panel p-4">
               <h2 className="mb-2 text-sm font-semibold">Resolvido?</h2>
               <p className="mb-3 text-xs text-muted-foreground">

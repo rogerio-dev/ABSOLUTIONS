@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-export type AppRole = "admin" | "interno" | "cliente";
+export type AppRole = "admin" | "interno" | "analista" | "cliente";
 
 export function useSession() {
   const [session, setSession] = useState<Session | null>(null);
@@ -24,8 +24,13 @@ export function useSession() {
 export type Me = {
   userId: string | null;
   roles: AppRole[];
+  /** Equipe do CRM: funil, contratos, clientes. */
   isStaff: boolean;
   isAdmin: boolean;
+  /** Atende chamados. Inclui a equipe e os analistas. */
+  isSuporte: boolean;
+  /** Analista puro: só o módulo de suporte. */
+  isAnalista: boolean;
   clientId: string | null;
   fullName: string | null;
   email: string | null;
@@ -44,6 +49,8 @@ export function useMe() {
           roles: [],
           isStaff: false,
           isAdmin: false,
+          isSuporte: false,
+          isAnalista: false,
           clientId: null,
           fullName: null,
           email: null,
@@ -54,11 +61,14 @@ export function useMe() {
         supabase.from("profiles").select("client_id, full_name, email").eq("id", user.id).maybeSingle(),
       ]);
       const list = (roles ?? []).map((r) => r.role as AppRole);
+      const equipe = list.includes("admin") || list.includes("interno");
       return {
         userId: user.id,
         roles: list,
-        isStaff: list.includes("admin") || list.includes("interno"),
+        isStaff: equipe,
         isAdmin: list.includes("admin"),
+        isSuporte: equipe || list.includes("analista"),
+        isAnalista: list.includes("analista") && !equipe,
         clientId: profile?.client_id ?? null,
         fullName: profile?.full_name ?? user.email ?? null,
         email: profile?.email ?? user.email ?? null,

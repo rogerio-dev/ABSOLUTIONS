@@ -50,10 +50,16 @@ As chaves `publishable` são públicas por design — vão no bundle do navegado
 
 ## Segurança dos dados
 
-As 12 tabelas têm Row Level Security ativo, com dois perfis:
+As tabelas têm Row Level Security ativo, com quatro perfis:
 
-- **Equipe** (`is_staff()`) — acesso completo
-- **Cliente** (`my_client_id()`) — só os próprios registros, e atividades apenas quando marcadas como visíveis
+| Perfil | Função de guarda | Alcance |
+|---|---|---|
+| **admin** | `is_staff()` + `has_role('admin')` | tudo, mais acessos e a visão de suporte por analista |
+| **interno** | `is_staff()` | CRM completo e atendimento de chamados |
+| **analista** | `is_suporte()` | só o suporte: fila, chamados, SLA. O CRM não aparece |
+| **cliente** | `my_client_id()` | os próprios registros, e atividades apenas quando marcadas como visíveis |
+
+`is_suporte()` cobre admin, interno e analista; `is_staff()` cobre só admin e interno. Toda política do módulo de suporte usa a primeira, e tudo que é CRM usa a segunda. O analista lê `clients` e `profiles` porque precisa do nome da empresa e de quem atende no chamado — e só isso: funil, contratos, projetos e contatos continuam atrás de `is_staff()`, e devolvem zero linha para ele.
 
 As funções de autorização têm execução revogada para `anon` e `public`, e só administradores gerenciam papéis. O primeiro cadastro vira administrador por gatilho; os seguintes dependem de liberação.
 
@@ -63,6 +69,34 @@ Migrações em `supabase/migrations/`.
 
 E-mail e senha via Supabase. O botão "Continuar com Google" usa o OAuth nativo do Supabase — exige habilitar o provedor em **Authentication → Providers** no painel. Sem isso, o botão retorna erro e apenas o login por senha funciona.
 
+
+## Suporte: fila e responsáveis
+
+### Situações
+
+| Situação | No banco | O que significa | SLA |
+|---|---|---|---|
+| Novo | `novo` | chegou, ninguém tocou | correndo |
+| Aberto | `em_atendimento` | está comigo, em análise | correndo |
+| Pendente | `aguardando_cliente` | esperando retorno do solicitante | **pausado** |
+| Em espera | `em_espera` | parado por outra área interna | correndo |
+| Resolvido | `resolvido` | problema resolvido | encerrado |
+| Fechado | `fechado` | encerrado definitivamente | encerrado |
+
+**Pendente pausa o relógio; Em espera não.** A diferença não é detalhe: quando a bola está com o cliente, o tempo não é nosso; quando a bola está com outra área nossa, é. O tempo parado em Pendente volta a empurrar o prazo de resolução no momento em que o cliente responde — e responder já devolve o chamado para Aberto, sem ninguém precisar lembrar.
+
+A resposta e a situação saem no mesmo gesto: o botão de envio diz **Enviar como Aberto** (ou Pendente, Em espera, Resolvido), e o menu ao lado troca a escolha. Separar as duas coisas é como chamado fica marcado como aberto por uma semana esperando o cliente.
+
+### Responsável
+
+A fila mostra tudo, e o analista assume ao se colocar como responsável — pela tela do chamado ou pelo botão **Assumir** direto no cartão. Toda troca de responsável vira registro no histórico, então "quem pegou e largou este chamado" não depende da memória de quem estava por perto.
+
+A tela de suporte tem três recortes, e um quarto para o admin:
+
+- **Caixa geral** — abertos sem dono, o que precisa de alguém
+- **Meus chamados** — o que eu assumi
+- **Todos** — a fila inteira
+- **Por analista** (admin) — carga do time: em aberto, fora do prazo, pendentes, em espera e resolvidos nos últimos 30 dias. Clicar em uma linha filtra a lista para aquele analista
 
 ## Suporte: envio de e-mail
 
