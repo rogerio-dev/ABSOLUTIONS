@@ -38,5 +38,25 @@ export default defineConfig(async ({ mode, command }) => {
 
   plugins.push(viteReact());
 
-  return { define, plugins };
+  return {
+    define,
+    plugins,
+    environments: {
+      ssr: {
+        build: {
+          rollupOptions: {
+            output: {
+              /*
+               * O bundle do servidor sai em um chunk so.
+               * Com a divisao automatica, o Rollup separou o createCsrfMiddleware
+               * do modulo que o consome e nao emitiu o import, derrubando o SSR
+               * inteiro com "createCsrfMiddleware is not a function".
+               */
+              manualChunks: () => "servidor",
+            },
+          },
+        },
+      },
+    },
+  };
 });
