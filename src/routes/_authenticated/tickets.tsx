@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppShell, NoAccess, PageHeader } from "@/components/AppShell";
 import { PrioridadeTag, SlaTag, StatusTag, quandoRelativo } from "@/components/TicketBits";
 import { AvatarAgente, useAgentes, nomeDoAgente, type Agente } from "@/components/Responsavel";
+import { AoVivo } from "@/components/AoVivo";
+import { intervaloDeRecarga, useSuporteAoVivo } from "@/lib/suporte-tempo-real";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,10 +89,15 @@ function Tickets() {
   // Quando o admin clica em um analista na visão de equipe, a lista passa a
   // mostrar só os chamados dele.
   const [analistaFoco, setAnalistaFoco] = useState<string | null>(null);
+  const { aoVivo } = useSuporteAoVivo();
 
   const { data: tickets, isLoading: carregando } = useQuery({
     queryKey: ["tickets"],
     enabled: !!me,
+    // O Realtime avisa na hora; isto é a rede de segurança para quando o canal
+    // cai. Voltar para a aba também recarrega, que é quando mais importa.
+    refetchInterval: intervaloDeRecarga(aoVivo),
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tickets")
@@ -309,6 +316,9 @@ function Tickets() {
 
       {me.isSuporte && (
         <div className="mb-4 flex flex-wrap items-center gap-1 border-b border-border">
+          <span className="order-last ml-auto pb-2 pl-3">
+            <AoVivo ativo={aoVivo} />
+          </span>
           {(
             [
               { id: "caixa", label: "Caixa geral", n: contagem.semDono },

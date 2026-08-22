@@ -98,6 +98,16 @@ A tela de suporte tem três recortes, e um quarto para o admin:
 - **Todos** — a fila inteira
 - **Por analista** (admin) — carga do time: em aberto, fora do prazo, pendentes, em espera e resolvidos nos últimos 30 dias. Clicar em uma linha filtra a lista para aquele analista
 
+### A tela não precisa de F5
+
+A fila e a conversa se atualizam sozinhas pelo Realtime do Postgres. Fila que exige F5 é fila que atrasa: dois analistas pegam o mesmo chamado, a resposta do cliente fica meia hora invisível, o SLA corre sem ninguém ver.
+
+As tabelas `tickets` e `ticket_messages` estão na publicação `supabase_realtime`, com `REPLICA IDENTITY FULL` — é o que faz a linha inteira ir no evento e permite ao Realtime aplicar RLS sobre o registro alterado.
+
+**O Realtime respeita RLS**, e isso foi verificado: um analista autenticado recebe os eventos; um assinante anônimo, com o mesmo canal e a mesma chave publishable, não recebe nada.
+
+WebSocket cai — rede corporativa bloqueia, proxy derruba, notebook dorme. Então o indicador **ao vivo** no topo da tela não é enfeite: quando o canal está no ar, a recarga automática fica em 2 minutos, só como rede de segurança; quando cai, aperta para 20 segundos e o rótulo muda. Sem esse aviso, quem olha uma fila parada não sabe se não há nada novo ou se a tela travou — e na dúvida recarrega, que é o hábito que o tempo real veio tirar.
+
 ## Suporte: envio de e-mail
 
 O envio aceita dois caminhos e escolhe pelo que estiver configurado.

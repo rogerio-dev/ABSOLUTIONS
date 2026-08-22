@@ -8,6 +8,8 @@ import { AppShell, NoAccess } from "@/components/AppShell";
 import { PrioridadeTag, SlaTag, StatusTag, iniciaisDe, quandoRelativo } from "@/components/TicketBits";
 import { EnviarComStatus } from "@/components/EnviarComStatus";
 import { SeletorResponsavel, useAgentes, nomeDoAgente } from "@/components/Responsavel";
+import { AoVivo } from "@/components/AoVivo";
+import { intervaloDeRecarga, useSuporteAoVivo } from "@/lib/suporte-tempo-real";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { despacharEmails } from "@/lib/suporte-email";
@@ -55,10 +57,13 @@ function TicketDetalhe() {
   const [novaCopia, setNovaCopia] = useState("");
   // Nulo enquanto o chamado não carregou; depois assume a sugestão do status atual.
   const [statusEnvio, setStatusEnvio] = useState<StatusDeEnvioId | null>(null);
+  const { aoVivo } = useSuporteAoVivo(id);
 
   const { data: t } = useQuery({
     queryKey: ["ticket", id],
     enabled: !!me,
+    refetchInterval: intervaloDeRecarga(aoVivo),
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tickets")
@@ -75,6 +80,10 @@ function TicketDetalhe() {
   const { data: mensagens } = useQuery({
     queryKey: ["ticket-mensagens", id],
     enabled: !!me,
+    // A conversa é o que mais dói ficar velho: o cliente responde e o atendente
+    // segue escrevendo sem saber.
+    refetchInterval: intervaloDeRecarga(aoVivo),
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ticket_messages")
@@ -206,9 +215,12 @@ function TicketDetalhe() {
 
   return (
     <AppShell>
-      <Link to="/tickets" className="mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" /> Voltar para os chamados
-      </Link>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <Link to="/tickets" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" /> Voltar para os chamados
+        </Link>
+        {me.isSuporte && <AoVivo ativo={aoVivo} />}
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
         {/* Conversa */}
