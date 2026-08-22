@@ -20,6 +20,7 @@ export type Database = {
           nome: string
           slug: string
           email: string | null
+          dominio_entrada: string | null
           descricao: string | null
           padrao: boolean
           ativa: boolean
@@ -30,6 +31,7 @@ export type Database = {
           nome: string
           slug: string
           email?: string | null
+          dominio_entrada?: string | null
           descricao?: string | null
           padrao?: boolean
           ativa?: boolean
@@ -40,6 +42,7 @@ export type Database = {
           nome?: string
           slug?: string
           email?: string | null
+          dominio_entrada?: string | null
           descricao?: string | null
           padrao?: boolean
           ativa?: boolean
@@ -1064,6 +1067,35 @@ export type Database = {
         }[]
       }
       marcar_email: { Args: { _id: string; _erro?: string | null }; Returns: undefined }
+      registrar_resposta_de_webhook: {
+        Args: {
+          _segredo: string
+          _numero: number
+          _token: string
+          _de_email: string
+          _de_nome: string | null
+          _corpo: string
+          _message_id: string | null
+        }
+        Returns: { mensagem_id: string | null; ticket_id: string; situacao: string }[]
+      }
+      emails_pendentes_de_webhook: {
+        Args: { _segredo: string; _ticket: string }
+        Returns: {
+          id: string
+          ticket_numero: number
+          assunto: string
+          corpo: string
+          destinatarios: string[]
+          responder_para: string
+          autor_nome: string | null
+          cliente: string | null
+        }[]
+      }
+      marcar_email_de_webhook: {
+        Args: { _segredo: string; _id: string; _erro?: string | null }
+        Returns: undefined
+      }
       endereco_resposta: { Args: { _ticket: string }; Returns: string }
       acompanho_ticket: { Args: { _ticket: string }; Returns: boolean }
       meu_suporte_habilitado: { Args: never; Returns: boolean }

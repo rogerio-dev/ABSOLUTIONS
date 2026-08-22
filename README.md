@@ -99,7 +99,37 @@ Sem nenhum meio configurado, o sistema continua funcionando: as mensagens ficam 
 
 ### Recebimento de respostas
 
-Cada chamado tem um endereço próprio, no formato `suporte+t1000-<token>@absolutionsconsultoria.com.br`. Para as respostas virarem comentário automaticamente, falta um provedor que receba e-mail e chame um webhook (Mailgun, Postmark ou SendGrid). A função `registrar_resposta_por_email` no banco já está pronta para ser chamada por esse webhook.
+Cada chamado tem um endereço próprio, no formato `comercial+t1000-<token>@mg.absolutionsconsultoria.com.br`. Quem responde não digita isso: é o `Reply-To` da notificação. Responder ao e-mail já basta, e a resposta vira mensagem pública do chamado.
+
+O caminho é `POST /api/email/entrada`, atendido em `src/server.ts` antes do roteador — não é uma página, não tem sessão e precisa devolver um status que o provedor entenda.
+
+**O domínio de entrada é diferente do domínio da caixa.** O MX de `absolutionsconsultoria.com.br` aponta para a KingHost, onde ficam as caixas de verdade; quem recebe e chama o webhook é o Mailgun, que só enxerga o próprio domínio. Por isso `support_inboxes.dominio_entrada` guarda para onde a resposta é roteada, separado do endereço que aparece para o cliente.
+
+Rota a criar no Mailgun (Receiving → Create Route):
+
+| Campo | Valor |
+|---|---|
+| Expression | `match_recipient(".*@mg.absolutionsconsultoria.com.br")` |
+| Action | `forward("https://www.absolutionsconsultoria.com.br/api/email/entrada")` |
+
+Variáveis:
+
+| Variável | Descrição |
+|---|---|
+| `MAILGUN_SIGNING_KEY` | chave **de assinatura de webhook**, não a de API |
+| `WEBHOOK_EMAIL_SEGREDO` | mesmo valor gravado em `app_segredos` |
+
+**Por que não usa a service_role key.** O webhook chega sem sessão, e o caminho óbvio seria dar a ele a chave de serviço — que ignora todas as políticas de RLS do projeto inteiro, para uma única operação. Em vez disso ele usa a chave publishable e prova quem é com um segredo compartilhado, conferido dentro do Postgres contra um sha256 guardado em `app_segredos` (tabela com RLS e nenhuma política: invisível pela API). Se o ambiente da Railway vazar, o pior caso é alguém postar resposta em um chamado cujo token já teria que conhecer.
+
+Para trocar o segredo:
+
+```sql
+select public.definir_segredo('webhook_email', 'novo-valor');
+```
+
+O que o webhook descarta em silêncio, respondendo 200 para o Mailgun não reentregar: mensagem repetida (mesmo `Message-Id`), autorresposta de férias, retorno de `mailer-daemon`, eco da própria caixa e resposta que só tem citação. Assinatura inválida devolve 401; endereço sem token válido devolve 406, que faz o Mailgun desistir. Falha de banco devolve 500, e aí ele reentrega depois — nada se perde.
+
+Assim que a resposta é registrada, o aviso para a equipe sai na hora, pelo mesmo webhook. Esperar alguém abrir a tela de suporte derrotaria o propósito da notificação.
 
 ## Estrutura
 

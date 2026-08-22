@@ -47,6 +47,12 @@ function isH3SwallowedErrorBody(body: string): boolean {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      // Webhooks são atendidos antes do roteador: não são páginas, não têm
+      // sessão e precisam responder um status que o provedor entenda.
+      const { tratarEmailRecebido } = await import("./lib/email-entrada.server");
+      const webhook = await tratarEmailRecebido(request);
+      if (webhook) return webhook;
+
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);
