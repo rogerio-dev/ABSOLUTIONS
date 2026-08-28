@@ -749,6 +749,93 @@ export type Database = {
         }
         Relationships: []
       }
+      prospect_ondas: {
+        Row: {
+          id: string
+          nome: string
+          descricao: string | null
+          criterio: Json
+          criada_por: string | null
+          encerrada_em: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          nome: string
+          descricao?: string | null
+          criterio?: Json
+          criada_por?: string | null
+          encerrada_em?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          nome?: string
+          descricao?: string | null
+          criterio?: Json
+          criada_por?: string | null
+          encerrada_em?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      prospect_alvos: {
+        Row: {
+          id: string
+          onda_id: string
+          client_id: string
+          score: number
+          componentes: Json
+          situacao: "a_contatar" | "tentando" | "respondeu" | "reuniao_marcada" | "virou_oportunidade" | "descartado"
+          tentativas: number
+          ultimo_contato_em: string | null
+          proxima_acao_em: string | null
+          canal: string | null
+          responsavel_id: string | null
+          observacao: string | null
+          motivo_descarte: string | null
+          deal_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          onda_id: string
+          client_id: string
+          score?: number
+          componentes?: Json
+          situacao?: "a_contatar" | "tentando" | "respondeu" | "reuniao_marcada" | "virou_oportunidade" | "descartado"
+          tentativas?: number
+          ultimo_contato_em?: string | null
+          proxima_acao_em?: string | null
+          canal?: string | null
+          responsavel_id?: string | null
+          observacao?: string | null
+          motivo_descarte?: string | null
+          deal_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          onda_id?: string
+          client_id?: string
+          score?: number
+          componentes?: Json
+          situacao?: "a_contatar" | "tentando" | "respondeu" | "reuniao_marcada" | "virou_oportunidade" | "descartado"
+          tentativas?: number
+          ultimo_contato_em?: string | null
+          proxima_acao_em?: string | null
+          canal?: string | null
+          responsavel_id?: string | null
+          observacao?: string | null
+          motivo_descarte?: string | null
+          deal_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contract_apontamentos: {
         Row: {
           id: string
@@ -1231,7 +1318,66 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      prospeccao: {
+        Row: {
+          id: string | null
+          nome: string | null
+          cnpj: string | null
+          classificacao: string | null
+          macro_segmento: string | null
+          segmento: string | null
+          ativo: string | null
+          tickets_fluig: number | null
+          tickets_abertos: number | null
+          ultimo_ticket: string | null
+          is_carteira: boolean | null
+          contatos: number | null
+          telefones: number | null
+          emails: number | null
+          decisores: number | null
+          tem_contrato: boolean | null
+          no_funil: boolean | null
+          em_onda: boolean | null
+          fora_do_alvo: boolean | null
+          p_uso: number | null
+          p_recencia: number | null
+          p_dor: number | null
+          p_porte: number | null
+          p_alcance: number | null
+        }
+        Relationships: []
+      }
+      prospeccao_ranqueada: {
+        Row: {
+          id: string | null
+          nome: string | null
+          cnpj: string | null
+          classificacao: string | null
+          macro_segmento: string | null
+          segmento: string | null
+          ativo: string | null
+          tickets_fluig: number | null
+          tickets_abertos: number | null
+          ultimo_ticket: string | null
+          is_carteira: boolean | null
+          contatos: number | null
+          telefones: number | null
+          emails: number | null
+          decisores: number | null
+          tem_contrato: boolean | null
+          no_funil: boolean | null
+          em_onda: boolean | null
+          fora_do_alvo: boolean | null
+          p_uso: number | null
+          p_recencia: number | null
+          p_dor: number | null
+          p_porte: number | null
+          p_alcance: number | null
+          score: number | null
+          disponivel: boolean | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       emails_pendentes: {
@@ -1246,6 +1392,23 @@ export type Database = {
           autor_nome: string | null
           cliente: string | null
         }[]
+      }
+      montar_onda: {
+        Args: {
+          _nome: string
+          _quantidade?: number
+          _descricao?: string | null
+          _classificacoes?: string[] | null
+          _segmentos?: string[] | null
+          _score_minimo?: number
+          _so_com_telefone?: boolean
+          _meses_recencia?: number | null
+        }
+        Returns: { onda_id: string | null; selecionados: number }[]
+      }
+      promover_alvo: {
+        Args: { _alvo: string; _titulo: string; _valor?: number | null; _previsao?: string | null }
+        Returns: string
       }
       saldo_de_horas: {
         Args: { _contrato: string; _mes?: string }
@@ -1319,6 +1482,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "interno" | "analista" | "cliente"
+      alvo_situacao: "a_contatar" | "tentando" | "respondeu" | "reuniao_marcada" | "virou_oportunidade" | "descartado"
       contrato_modalidade: "banco_horas" | "fixo_mensal" | "projeto" | "horas_avulsas" | "alocacao"
       contrato_situacao: "rascunho" | "em_negociacao" | "ativo" | "suspenso" | "encerrado" | "cancelado"
       contrato_reajuste: "nenhum" | "ipca" | "igpm" | "inpc" | "outro"

@@ -11,6 +11,7 @@ import {
   UsersRound,
   LifeBuoy,
   Palette,
+  Target,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMe, useSignOut } from "@/lib/auth";
@@ -19,6 +20,7 @@ import { cn } from "@/lib/utils";
 const staffNav = [
   { to: "/painel", label: "Painel", icon: LayoutDashboard },
   { to: "/clientes", label: "Clientes", icon: Building2 },
+  { to: "/prospeccao", label: "Prospecção", icon: Target },
   { to: "/funil", label: "Funil", icon: KanbanSquare },
   { to: "/agenda", label: "Agenda", icon: CalendarDays },
   { to: "/contratos", label: "Contratos", icon: FileSignature },

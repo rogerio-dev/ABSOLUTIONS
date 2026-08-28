@@ -11,6 +11,7 @@ Site institucional, CRM interno e portal do cliente — **uma única aplicação
 | `/painel`, `/funil`, `/clientes`, `/contratos`, `/projetos`, `/agenda`, `/equipe` | CRM interno | equipe |
 | `/marketing` | Central da marca: logotipo, ícones, paleta e peças prontas | equipe |
 | `/contratos`, `/contratos/$id` | Contratos: vigência, valores, horas, documentos | equipe |
+| `/prospeccao`, `/prospeccao/$id` | Base ranqueada e ondas de abordagem | equipe |
 | `/portal` | Portal onde o cliente acompanha contratos e projetos | cliente |
 
 O botão **Acesso**, no canto superior direito do site, leva direto à tela de login — sem sair da aplicação e sem recarregar a página. Quem já está autenticado vê **Painel** no lugar.
@@ -71,6 +72,47 @@ Migrações em `supabase/migrations/`.
 
 E-mail e senha via Supabase. O botão "Continuar com Google" usa o OAuth nativo do Supabase — exige habilitar o provedor em **Authentication → Providers** no painel. Sem isso, o botão retorna erro e apenas o login por senha funciona.
 
+
+## Prospecção
+
+### O problema
+
+São 8.297 empresas e uma pessoa. Atacar em ordem alfabética, ou por "quem eu lembrar", joga fora a única vantagem que essa base tem sobre uma lista comprada: **ela não é fria**. Cada linha traz o histórico de chamados de Fluig daquela empresa, o que diz três coisas que nenhuma lista comprada diz — se ela usa o produto, com que intensidade, e se ainda está viva nele.
+
+### Duas camadas, de propósito
+
+| Camada | O que é | Tem valor? |
+|---|---|---|
+| **Prospecção** (`prospect_alvos`) | abordagem fria, com cadência | não |
+| **Funil** (`deals`) | oportunidade real, com etapa | sim |
+
+Misturar as duas é como o número do pipeline deixa de significar alguma coisa: cem cartões em "Novo" somando R$ 0 não é pipeline, é lista de tarefas. A promoção entre as camadas é explícita, e é ali que valor e previsão passam a fazer sentido.
+
+### O score
+
+Vive em uma **view**, não em coluna. Score guardado envelhece em silêncio, e o principal ingrediente aqui é recência — que muda sozinha todo dia.
+
+| Fator | Até | Por quê |
+|---|---|---|
+| Uso do Fluig | 30 | Muito chamado é ambiente complexo sem quem resolva por dentro |
+| Ainda está viva | 25 | Quem parou de abrir chamado há três anos largou o produto |
+| Dor agora | 15 | Chamado aberto é gancho que e-mail frio não tem |
+| Porte | 15 | Large e Select pagam contrato maior |
+| Dá para falar | 15 | Score alto sem telefone não vira reunião |
+
+Os componentes são expostos individualmente, e a tela mostra o porquê em texto: *"297 chamados, 2 abertos agora, mexeu no Fluig este mês, conta Large"*. O número sozinho não convence ninguém a pegar o telefone.
+
+**Quem fica de fora:** empresa inativa, parceiro, unidade própria e o próprio grupo TOTVS — estão na base porque abriam chamado, não porque compram consultoria. São 1.265 registros. Também saem da fila quem já tem contrato, já está no funil ou já está em outra onda.
+
+### Ondas
+
+Um lote fechado e datado, e não fluxo infinito. É o que permite aprender: a onda 1 converteu 3%, a onda 2 com outro filtro converteu 7% — e aí o critério da onda 3 deixa de ser palpite. A tela da onda mostra a taxa de conversão do lote e convida a comparar com a próxima.
+
+Um índice único impede a mesma empresa em duas ondas ativas ao mesmo tempo: dois e-mails frios da mesma consultoria na mesma semana queimam o contato.
+
+A aba **Para hoje** é a fila do dia — quem nunca foi tocado, mais quem já passou da data agendada. Registrar uma tentativa agenda o próximo toque em três dias sozinho, porque alvo sem próxima data apodrece em silêncio.
+
+O motivo do descarte é obrigatório e serve de realimentação: "não usa mais o Fluig" repetido muitas vezes significa que o corte de recência está frouxo.
 
 ## Contratos
 

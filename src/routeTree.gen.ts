@@ -21,11 +21,13 @@ import { Route as AuthenticatedMarketingRouteImport } from './routes/_authentica
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedPortalRouteImport } from './routes/_authenticated/portal'
 import { Route as AuthenticatedProjetosRouteImport } from './routes/_authenticated/projetos'
+import { Route as AuthenticatedProspeccaoRouteImport } from './routes/_authenticated/prospeccao'
 import { Route as AuthenticatedTicketsRouteImport } from './routes/_authenticated/tickets'
 import { Route as AuthenticatedClientesIdRouteImport } from './routes/_authenticated/clientes_.$id'
 import { Route as AuthenticatedClientesNovoRouteImport } from './routes/_authenticated/clientes_.novo'
 import { Route as AuthenticatedContratosIdRouteImport } from './routes/_authenticated/contratos_.$id'
 import { Route as AuthenticatedProjetosIdRouteImport } from './routes/_authenticated/projetos_.$id'
+import { Route as AuthenticatedProspeccaoIdRouteImport } from './routes/_authenticated/prospeccao_.$id'
 import { Route as AuthenticatedTicketsIdRouteImport } from './routes/_authenticated/tickets_.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -87,6 +89,11 @@ const AuthenticatedProjetosRoute = AuthenticatedProjetosRouteImport.update({
   path: '/projetos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedProspeccaoRoute = AuthenticatedProspeccaoRouteImport.update({
+  id: '/prospeccao',
+  path: '/prospeccao',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedTicketsRoute = AuthenticatedTicketsRouteImport.update({
   id: '/tickets',
   path: '/tickets',
@@ -114,6 +121,12 @@ const AuthenticatedProjetosIdRoute = AuthenticatedProjetosIdRouteImport.update({
   path: '/projetos/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedProspeccaoIdRoute =
+  AuthenticatedProspeccaoIdRouteImport.update({
+    id: '/prospeccao_/$id',
+    path: '/prospeccao/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedTicketsIdRoute = AuthenticatedTicketsIdRouteImport.update({
   id: '/tickets_/$id',
   path: '/tickets/$id',
@@ -132,11 +145,13 @@ export interface FileRoutesByFullPath {
   '/painel': typeof AuthenticatedPainelRoute
   '/portal': typeof AuthenticatedPortalRoute
   '/projetos': typeof AuthenticatedProjetosRoute
+  '/prospeccao': typeof AuthenticatedProspeccaoRoute
   '/tickets': typeof AuthenticatedTicketsRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/clientes/novo': typeof AuthenticatedClientesNovoRoute
   '/contratos/$id': typeof AuthenticatedContratosIdRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRoute
+  '/prospeccao/$id': typeof AuthenticatedProspeccaoIdRoute
   '/tickets/$id': typeof AuthenticatedTicketsIdRoute
 }
 export interface FileRoutesByTo {
@@ -151,11 +166,13 @@ export interface FileRoutesByTo {
   '/painel': typeof AuthenticatedPainelRoute
   '/portal': typeof AuthenticatedPortalRoute
   '/projetos': typeof AuthenticatedProjetosRoute
+  '/prospeccao': typeof AuthenticatedProspeccaoRoute
   '/tickets': typeof AuthenticatedTicketsRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/clientes/novo': typeof AuthenticatedClientesNovoRoute
   '/contratos/$id': typeof AuthenticatedContratosIdRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRoute
+  '/prospeccao/$id': typeof AuthenticatedProspeccaoIdRoute
   '/tickets/$id': typeof AuthenticatedTicketsIdRoute
 }
 export interface FileRoutesById {
@@ -172,11 +189,13 @@ export interface FileRoutesById {
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/portal': typeof AuthenticatedPortalRoute
   '/_authenticated/projetos': typeof AuthenticatedProjetosRoute
+  '/_authenticated/prospeccao': typeof AuthenticatedProspeccaoRoute
   '/_authenticated/tickets': typeof AuthenticatedTicketsRoute
   '/_authenticated/clientes_/$id': typeof AuthenticatedClientesIdRoute
   '/_authenticated/clientes_/novo': typeof AuthenticatedClientesNovoRoute
   '/_authenticated/contratos_/$id': typeof AuthenticatedContratosIdRoute
   '/_authenticated/projetos_/$id': typeof AuthenticatedProjetosIdRoute
+  '/_authenticated/prospeccao_/$id': typeof AuthenticatedProspeccaoIdRoute
   '/_authenticated/tickets_/$id': typeof AuthenticatedTicketsIdRoute
 }
 export interface FileRouteTypes {
@@ -193,11 +212,13 @@ export interface FileRouteTypes {
     | '/painel'
     | '/portal'
     | '/projetos'
+    | '/prospeccao'
     | '/tickets'
     | '/clientes/$id'
     | '/clientes/novo'
     | '/contratos/$id'
     | '/projetos/$id'
+    | '/prospeccao/$id'
     | '/tickets/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -212,11 +233,13 @@ export interface FileRouteTypes {
     | '/painel'
     | '/portal'
     | '/projetos'
+    | '/prospeccao'
     | '/tickets'
     | '/clientes/$id'
     | '/clientes/novo'
     | '/contratos/$id'
     | '/projetos/$id'
+    | '/prospeccao/$id'
     | '/tickets/$id'
   id:
     | '__root__'
@@ -232,11 +255,13 @@ export interface FileRouteTypes {
     | '/_authenticated/painel'
     | '/_authenticated/portal'
     | '/_authenticated/projetos'
+    | '/_authenticated/prospeccao'
     | '/_authenticated/tickets'
     | '/_authenticated/clientes_/$id'
     | '/_authenticated/clientes_/novo'
     | '/_authenticated/contratos_/$id'
     | '/_authenticated/projetos_/$id'
+    | '/_authenticated/prospeccao_/$id'
     | '/_authenticated/tickets_/$id'
   fileRoutesById: FileRoutesById
 }
@@ -332,6 +357,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjetosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/prospeccao': {
+      id: '/_authenticated/prospeccao'
+      path: '/prospeccao'
+      fullPath: '/prospeccao'
+      preLoaderRoute: typeof AuthenticatedProspeccaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/tickets': {
       id: '/_authenticated/tickets'
       path: '/tickets'
@@ -367,6 +399,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjetosIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/prospeccao_/$id': {
+      id: '/_authenticated/prospeccao_/$id'
+      path: '/prospeccao/$id'
+      fullPath: '/prospeccao/$id'
+      preLoaderRoute: typeof AuthenticatedProspeccaoIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/tickets_/$id': {
       id: '/_authenticated/tickets_/$id'
       path: '/tickets/$id'
@@ -387,11 +426,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedPortalRoute: typeof AuthenticatedPortalRoute
   AuthenticatedProjetosRoute: typeof AuthenticatedProjetosRoute
+  AuthenticatedProspeccaoRoute: typeof AuthenticatedProspeccaoRoute
   AuthenticatedTicketsRoute: typeof AuthenticatedTicketsRoute
   AuthenticatedClientesIdRoute: typeof AuthenticatedClientesIdRoute
   AuthenticatedClientesNovoRoute: typeof AuthenticatedClientesNovoRoute
   AuthenticatedContratosIdRoute: typeof AuthenticatedContratosIdRoute
   AuthenticatedProjetosIdRoute: typeof AuthenticatedProjetosIdRoute
+  AuthenticatedProspeccaoIdRoute: typeof AuthenticatedProspeccaoIdRoute
   AuthenticatedTicketsIdRoute: typeof AuthenticatedTicketsIdRoute
 }
 
@@ -405,11 +446,13 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedPortalRoute: AuthenticatedPortalRoute,
   AuthenticatedProjetosRoute: AuthenticatedProjetosRoute,
+  AuthenticatedProspeccaoRoute: AuthenticatedProspeccaoRoute,
   AuthenticatedTicketsRoute: AuthenticatedTicketsRoute,
   AuthenticatedClientesIdRoute: AuthenticatedClientesIdRoute,
   AuthenticatedClientesNovoRoute: AuthenticatedClientesNovoRoute,
   AuthenticatedContratosIdRoute: AuthenticatedContratosIdRoute,
   AuthenticatedProjetosIdRoute: AuthenticatedProjetosIdRoute,
+  AuthenticatedProspeccaoIdRoute: AuthenticatedProspeccaoIdRoute,
   AuthenticatedTicketsIdRoute: AuthenticatedTicketsIdRoute,
 }
 
