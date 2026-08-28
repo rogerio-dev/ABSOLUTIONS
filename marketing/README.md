@@ -32,6 +32,10 @@ As fontes Sora e Inter são baixadas automaticamente na primeira execução, par
 
 Manter as peças como código garante que a marca, as cores e os textos fiquem sempre iguais aos do site — se o telefone mudar, você troca em um lugar e regera tudo. Também evita depender de arquivo de projeto de editor gráfico e permite versionar as mudanças junto com o resto.
 
+## Onde ficam os arquivos da marca
+
+Esta pasta tem **peças prontas para publicar**. Os arquivos-fonte da identidade — logotipo em vetor, todas as versões de cor, favicons e a paleta — ficam em [`../marca/`](../marca/README.md). É de lá que se manda material para gráfica, agência ou parceiro.
+
 ## Identidade
 
 - Fundo: `#060b18` · Superfície: `#0e1730`

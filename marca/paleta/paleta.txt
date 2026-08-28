@@ -1,0 +1,16 @@
+AB Solutions — paleta oficial
+
+Ciano            #22D3EE   RGB  34 211 238   Destaque. Traço do símbolo, palavra Solutions, botões e links.
+Azul             #3B82F6   RGB  59 130 246   Secundária. Gradientes e apoio, nunca sozinha no lugar do ciano.
+Azul-noite       #060B18   RGB   6  11  24   Fundo. É o preto da marca — preto puro nunca é usado.
+Azul-profundo    #0E1730   RGB  14  23  48   Superfície. Cartões e blocos sobre o fundo.
+Branco-gelo      #E6EDF7   RGB 230 237 247   Texto sobre fundo escuro.
+Cinza-azulado    #9DB0C9   RGB 157 176 201   Texto secundário, legendas, apoio.
+Branco           #FFFFFF   RGB 255 255 255   As letras AB dentro do símbolo.
+
+Sobre fundo claro, use as versões escurecidas:
+Ciano escuro     #0E7490
+Azul escuro      #1E3A8A
+Tinta            #0B1220
+
+Tipografia: Sora (títulos, 700/800) · Inter (corpo, 400/600)

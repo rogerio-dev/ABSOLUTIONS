@@ -1,0 +1,22 @@
+/* Paleta AB Solutions. Gerado por marca/gerar-marca.py. */
+:root {
+  /* Destaque. Traço do símbolo, palavra Solutions, botões e links. */
+  --ab-ciano: #22d3ee;
+  /* Secundária. Gradientes e apoio, nunca sozinha no lugar do ciano. */
+  --ab-azul: #3b82f6;
+  /* Fundo. É o preto da marca — preto puro nunca é usado. */
+  --ab-fundo: #060b18;
+  /* Superfície. Cartões e blocos sobre o fundo. */
+  --ab-superficie: #0e1730;
+  /* Texto sobre fundo escuro. */
+  --ab-texto: #e6edf7;
+  /* Texto secundário, legendas, apoio. */
+  --ab-texto-suave: #9db0c9;
+  /* As letras AB dentro do símbolo. */
+  --ab-branco: #ffffff;
+
+  /* Versões escurecidas, para uso sobre fundo claro */
+  --ab-ciano-escuro: #0e7490;
+  --ab-azul-escuro: #1e3a8a;
+  --ab-tinta: #0b1220;
+}

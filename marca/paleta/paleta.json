@@ -1,0 +1,82 @@
+{
+  "marca": "AB Solutions",
+  "cores": [
+    {
+      "nome": "Ciano",
+      "hex": "#22d3ee",
+      "rgb": [
+        34,
+        211,
+        238
+      ],
+      "papel": "principal",
+      "uso": "Destaque. Traço do símbolo, palavra Solutions, botões e links."
+    },
+    {
+      "nome": "Azul",
+      "hex": "#3b82f6",
+      "rgb": [
+        59,
+        130,
+        246
+      ],
+      "papel": "principal",
+      "uso": "Secundária. Gradientes e apoio, nunca sozinha no lugar do ciano."
+    },
+    {
+      "nome": "Azul-noite",
+      "hex": "#060b18",
+      "rgb": [
+        6,
+        11,
+        24
+      ],
+      "papel": "fundo",
+      "uso": "Fundo. É o preto da marca — preto puro nunca é usado."
+    },
+    {
+      "nome": "Azul-profundo",
+      "hex": "#0e1730",
+      "rgb": [
+        14,
+        23,
+        48
+      ],
+      "papel": "fundo",
+      "uso": "Superfície. Cartões e blocos sobre o fundo."
+    },
+    {
+      "nome": "Branco-gelo",
+      "hex": "#e6edf7",
+      "rgb": [
+        230,
+        237,
+        247
+      ],
+      "papel": "texto",
+      "uso": "Texto sobre fundo escuro."
+    },
+    {
+      "nome": "Cinza-azulado",
+      "hex": "#9db0c9",
+      "rgb": [
+        157,
+        176,
+        201
+      ],
+      "papel": "texto",
+      "uso": "Texto secundário, legendas, apoio."
+    },
+    {
+      "nome": "Branco",
+      "hex": "#ffffff",
+      "rgb": [
+        255,
+        255,
+        255
+      ],
+      "papel": "texto",
+      "uso": "As letras AB dentro do símbolo."
+    }
+  ]
+}

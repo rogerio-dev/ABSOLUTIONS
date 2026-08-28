@@ -93,7 +93,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Manrope:wght@400;500;600;700&display=swap",
       },
+      // O SVG cobre os navegadores atuais; o .ico atende o Windows, que usa o
+      // ícone em atalho e barra de tarefas, e navegador antigo que nem procura
+      // por SVG. As letras dos dois são curvas, não texto em Sora: como
+      // favicon carrega antes da fonte, o "AB" aparecia em Arial no primeiro
+      // instante e piscava ao trocar.
       { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+      { rel: "icon", href: "/favicon.ico", sizes: "48x48" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
   }),
   shellComponent: RootShell,
