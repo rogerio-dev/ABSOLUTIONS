@@ -27,7 +27,12 @@ from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.ttLib import TTFont
 
 RAIZ = Path(__file__).resolve().parent.parent
-MARCA = RAIZ / "marca"
+# O kit sai em public/ porque é de lá que o servidor entrega arquivo. Assim a
+# tela de Marketing do sistema baixa os mesmos arquivos que estão no repositório,
+# sem cópia paralela para desencontrar, e um link direto pode ser mandado para
+# uma gráfica sem precisar de acesso ao Git.
+MARCA = RAIZ / "public" / "marca"
+PECAS = RAIZ / "public" / "marketing"
 FONTES = RAIZ / "marketing" / "fonts"
 
 # ---------------------------------------------------------------
@@ -402,6 +407,7 @@ def main() -> None:
 
     rasterizar()
     montar_ico()
+    publicar_pecas()
 
 
 PNGS = [
@@ -471,6 +477,23 @@ def montar_ico() -> None:
         sizes=[(48, 48), (32, 32), (16, 16)], append_images=imagens[1:],
     )
     print("favicon.ico com 16, 32 e 48 px")
+
+
+def publicar_pecas() -> None:
+    """
+    Espelha as peças prontas de marketing/ para public/.
+
+    Elas são geradas por marketing/gerar-assets.js, que não conhece o site.
+    Copiar aqui deixa um comando só publicando tudo o que a tela de Marketing
+    mostra.
+    """
+    PECAS.mkdir(parents=True, exist_ok=True)
+    origem = RAIZ / "marketing"
+    copiados = 0
+    for arquivo in sorted(origem.glob("*.png")):
+        shutil.copy2(arquivo, PECAS / arquivo.name)
+        copiados += 1
+    print(f"{copiados} peças de marketing publicadas")
 
 
 if __name__ == "__main__":

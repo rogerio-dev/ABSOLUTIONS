@@ -1,5 +1,7 @@
 # Marca AB Solutions
 
+O gerador da identidade. **Os arquivos ficam em [`../public/marca/`](../../public/marca)** — de lá o servidor os entrega, e a tela **Marketing** do sistema baixa exatamente os mesmos arquivos que estão no repositório, sem cópia paralela para desencontrar.
+
 Kit completo: logotipo, ícones e paleta. É esta pasta que você manda para uma gráfica, uma agência, um parceiro ou quem for montar uma apresentação.
 
 Comece por **`manual-da-marca.png`** — uma página com as versões, o respiro obrigatório, o tamanho mínimo e o que não fazer.

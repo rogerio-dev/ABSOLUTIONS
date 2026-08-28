@@ -9,6 +9,7 @@ Site institucional, CRM interno e portal do cliente — **uma única aplicação
 | `/` | Site institucional: serviços, oferta do processo gratuito, FAQ | público |
 | `/auth` | Login e cadastro | público |
 | `/painel`, `/funil`, `/clientes`, `/contratos`, `/projetos`, `/agenda`, `/equipe` | CRM interno | equipe |
+| `/marketing` | Central da marca: logotipo, ícones, paleta e peças prontas | equipe |
 | `/portal` | Portal onde o cliente acompanha contratos e projetos | cliente |
 
 O botão **Acesso**, no canto superior direito do site, leva direto à tela de login — sem sair da aplicação e sem recarregar a página. Quem já está autenticado vê **Painel** no lugar.

@@ -10,6 +10,7 @@ import {
   FolderKanban,
   UsersRound,
   LifeBuoy,
+  Palette,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMe, useSignOut } from "@/lib/auth";
@@ -23,6 +24,7 @@ const staffNav = [
   { to: "/contratos", label: "Contratos", icon: FileSignature },
   { to: "/projetos", label: "Projetos", icon: FolderKanban },
   { to: "/tickets", label: "Suporte", icon: LifeBuoy },
+  { to: "/marketing", label: "Marketing", icon: Palette },
   { to: "/equipe", label: "Equipe & Acessos", icon: UsersRound },
 ] as const;
 
