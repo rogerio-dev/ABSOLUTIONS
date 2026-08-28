@@ -92,8 +92,33 @@
 }
 
 @layer base {
+  /*
+   * A lista que um <select> abre, o calendário de um input[type=date] e a barra
+   * de rolagem não são desenhados pela página: quem desenha é o navegador, com
+   * o tema do sistema. Sem esta declaração eles saem claros no meio de uma
+   * interface escura — foi o que aconteceu com os selects do contrato.
+   *
+   * `color-scheme` é o interruptor que diz ao navegador qual tema usar nesses
+   * controles. Vale para toda a aplicação de uma vez, e é o único jeito de
+   * alcançá-los: eles vivem fora da árvore do documento.
+   */
+  :root {
+    color-scheme: dark;
+  }
+
   * {
     border-color: var(--color-border);
+  }
+
+  /*
+   * Reforço para navegador que não aplica color-scheme na lista aberta.
+   * Cor precisa vir junto: só o fundo escuro deixaria texto escuro sobre
+   * escuro, que é pior do que o problema original.
+   */
+  select option,
+  select optgroup {
+    background-color: var(--color-popover);
+    color: var(--color-popover-foreground);
   }
 
   body {
