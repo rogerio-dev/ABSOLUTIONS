@@ -204,7 +204,9 @@ Para trocar o segredo:
 select public.definir_segredo('webhook_email', 'novo-valor');
 ```
 
-O que o webhook descarta em silêncio, respondendo 200 para o Mailgun não reentregar: mensagem repetida (mesmo `Message-Id`), autorresposta de férias, retorno de `mailer-daemon`, eco da própria caixa e resposta que só tem citação. Assinatura inválida devolve 401; endereço sem token válido devolve 406, que faz o Mailgun desistir. Falha de banco devolve 500, e aí ele reentrega depois — nada se perde.
+O que o webhook descarta em silêncio, respondendo 200 para o Mailgun não reentregar: mensagem repetida (mesmo `Message-Id`), autorresposta de férias, retorno de `mailer-daemon`, eco da própria caixa e resposta que só tem citação.
+
+Do corpo, além da citação, sai também a assinatura: uma linha com dois hifens sozinhos é o separador definido na RFC 3676, e é o que Gmail, Outlook e Thunderbird inserem. Sem cortar ali, cada resposta arrastava para o chamado o nome, o telefone, o cargo, os ícones de rede social e a frase motivacional de quem respondeu. O corte só vale a partir do segundo caractere — mensagem que começa com `--` não está delimitando assinatura nenhuma. Assinatura inválida devolve 401; endereço sem token válido devolve 406, que faz o Mailgun desistir. Falha de banco devolve 500, e aí ele reentrega depois — nada se perde.
 
 Assim que a resposta é registrada, o aviso para a equipe sai na hora, pelo mesmo webhook. Esperar alguém abrir a tela de suporte derrotaria o propósito da notificação.
 

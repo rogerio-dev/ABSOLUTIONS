@@ -139,6 +139,20 @@ export function limparCorpo(texto: string): string {
     if (m?.index !== undefined && m.index < corte) corte = m.index;
   }
 
+  /*
+   * Linha com dois hifens sozinhos é o separador de assinatura definido na
+   * RFC 3676, e é o que Gmail, Outlook e Thunderbird inserem. Sem cortar aqui,
+   * cada resposta arrasta para o chamado nome, telefone, cargo, ícones de rede
+   * social e a frase motivacional de quem respondeu.
+   *
+   * Só vale a partir do segundo caractere: mensagem que começa com "--" não
+   * está delimitando assinatura nenhuma, e cortar no início apagaria tudo.
+   */
+  const assinatura = /^[ \t]*--[ \t]*$/m.exec(texto);
+  if (assinatura?.index !== undefined && assinatura.index > 0 && assinatura.index < corte) {
+    corte = assinatura.index;
+  }
+
   return texto
     .slice(0, corte)
     .replace(/\r\n/g, "\n")
