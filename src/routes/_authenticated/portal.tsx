@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppShell, NoAccess, PageHeader } from "@/components/AppShell";
 import { useMe } from "@/lib/auth";
 import { brl, d, dt } from "@/lib/crm";
+import { ContratoDoCliente } from "@/components/ContratoDoCliente";
 
 export const Route = createFileRoute("/_authenticated/portal")({
   head: () => ({
@@ -77,14 +78,7 @@ function Portal() {
             {(data?.contratos ?? []).length === 0 ? (
               <p className="py-3 text-sm text-muted-foreground">Nenhum contrato disponível.</p>
             ) : (
-              (data?.contratos ?? []).map((c) => (
-                <div key={c.id} className="flex items-center justify-between py-3 text-sm">
-                  <span>{c.titulo}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {brl(Number(c.valor ?? 0))} · até {d(c.data_fim)}
-                  </span>
-                </div>
-              ))
+              (data?.contratos ?? []).map((c) => <ContratoDoCliente key={c.id} contrato={c} />)
             )}
           </div>
         </div>

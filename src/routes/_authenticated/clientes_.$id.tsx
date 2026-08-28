@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { SuporteDoCliente } from "@/components/SuporteDoCliente";
 import { useMe } from "@/lib/auth";
+import { rotuloModalidade, rotuloSituacao } from "@/lib/contratos";
 import { brl, d, dt } from "@/lib/crm";
 
 export const Route = createFileRoute("/_authenticated/clientes_/$id")({
@@ -389,18 +390,26 @@ function ClienteDetalhe() {
               <p className="p-4 text-sm text-muted-foreground">Nenhum contrato cadastrado.</p>
             ) : (
               (extras?.contratos ?? []).map((c) => (
-                <div key={c.id} className="flex items-center justify-between gap-3 p-4">
+                <Link
+                  key={c.id}
+                  to="/contratos/$id"
+                  params={{ id: c.id }}
+                  className="flex items-center justify-between gap-3 p-4 transition-colors hover:bg-accent/50"
+                >
                   <div>
                     <p className="font-medium">
                       {c.numero ? `${c.numero} · ` : ""}
                       {c.titulo}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {d(c.data_inicio)} — {d(c.data_fim)} · {c.status}
+                      {rotuloModalidade(c.modalidade)} · {d(c.data_inicio)} —{" "}
+                      {c.prazo_indeterminado ? "sem prazo" : d(c.data_fim)} · {rotuloSituacao(c.situacao)}
                     </p>
                   </div>
-                  <span className="font-display font-semibold">{brl(Number(c.valor ?? 0))}</span>
-                </div>
+                  <span className="font-display font-semibold">
+                    {c.valor_mensal ? `${brl(Number(c.valor_mensal))}/mês` : brl(Number(c.valor ?? 0))}
+                  </span>
+                </Link>
               ))
             )}
           </div>

@@ -49,7 +49,7 @@ function Painel() {
           .gte("inicio", new Date(Date.now() - 3600_000).toISOString())
           .order("inicio")
           .limit(6),
-        supabase.from("contracts").select("valor, status"),
+        supabase.from("contracts").select("valor_mensal, situacao"),
       ]);
       const abertos = (deals.data ?? []).filter((x) => x.stage !== "ganho" && x.stage !== "perdido");
       return {
@@ -60,9 +60,11 @@ function Painel() {
         negocios: abertos.length,
         ganhos: (deals.data ?? []).filter((x) => x.stage === "ganho").length,
         reunioes: reunioes.data ?? [],
+        // Receita recorrente sai do valor mensal. O valor global de um contrato
+        // por projeto nao recorre, e somava um numero que nunca foi verdade.
         mrr: (contratos.data ?? [])
-          .filter((c) => c.status === "ativo")
-          .reduce((s, c) => s + Number(c.valor ?? 0), 0),
+          .filter((c) => c.situacao === "ativo")
+          .reduce((s, c) => s + Number(c.valor_mensal ?? 0), 0),
       };
     },
   });

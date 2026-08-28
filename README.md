@@ -10,6 +10,7 @@ Site institucional, CRM interno e portal do cliente — **uma única aplicação
 | `/auth` | Login e cadastro | público |
 | `/painel`, `/funil`, `/clientes`, `/contratos`, `/projetos`, `/agenda`, `/equipe` | CRM interno | equipe |
 | `/marketing` | Central da marca: logotipo, ícones, paleta e peças prontas | equipe |
+| `/contratos`, `/contratos/$id` | Contratos: vigência, valores, horas, documentos | equipe |
 | `/portal` | Portal onde o cliente acompanha contratos e projetos | cliente |
 
 O botão **Acesso**, no canto superior direito do site, leva direto à tela de login — sem sair da aplicação e sem recarregar a página. Quem já está autenticado vê **Painel** no lugar.
@@ -70,6 +71,40 @@ Migrações em `supabase/migrations/`.
 
 E-mail e senha via Supabase. O botão "Continuar com Google" usa o OAuth nativo do Supabase — exige habilitar o provedor em **Authentication → Providers** no painel. Sem isso, o botão retorna erro e apenas o login por senha funciona.
 
+
+## Contratos
+
+### Modalidades
+
+A modalidade é a decisão que muda todo o resto: o que se mede, o que se fatura e o que o cliente pode exigir.
+
+| Modalidade | Como cobra | O que se mede |
+|---|---|---|
+| **Banco de horas** | pacote de horas por mês | saldo |
+| **Fixo mensal** | valor fixo, sustentação e suporte | disponibilidade |
+| **Projeto** | escopo e preço fechados | entrega |
+| **Horas avulsas** | sob demanda, pelo que se usou | horas |
+| **Alocação** | profissional dedicado por período | disponibilidade |
+
+Tudo em uma tabela só, com a modalidade dizendo quais campos importam. Quatro tabelas quase iguais dariam mais trabalho e não dariam conta do contrato "meio banco de horas, meio projeto" que a vida real produz.
+
+### A data que importa não é o fim da vigência
+
+É o último dia para avisar que não vai renovar. Num contrato com renovação automática, passar dessa data significa mais um ciclo inteiro — e é o tipo de prazo que se perde por não estar escrito em lugar nenhum. Por isso a lista destaca contratos "pedindo decisão": vencidos, perto do prazo de aviso, ou já renovados sozinhos por ter passado dele.
+
+### Saldo de horas
+
+`saldo_de_horas(contrato, mês)` devolve contratadas, consumidas, acumulado de meses anteriores e saldo. O acúmulo é **calculado**, não guardado em coluna: saldo guardado desanda no primeiro apontamento retroativo, e apontamento retroativo é a regra, não a exceção. O contrato define se o saldo acumula e por quantos meses ele ainda vale.
+
+O apontamento é o que transforma o pacote em saldo. Sem ele, "40 horas por mês" é um número decorativo.
+
+### Documentos
+
+O arquivo vai para o bucket **privado** `contratos`; a tabela `contract_documentos` guarda o que se precisa saber sem baixar. Contrato assinado tem CNPJ, valores e assinatura de gente — nada é alcançável por URL adivinhada. O acesso sai sempre de uma URL assinada de curta duração, gerada para quem já provou ter direito.
+
+O caminho é sempre `<contract_id>/<arquivo>`: não é convenção estética, é o que a política do Storage lê para descobrir de que contrato o arquivo é.
+
+**`visivel_cliente` controla os dois lados de uma vez.** A política do Storage consulta a tabela de documentos, então desmarcar a caixa corta o acesso ao arquivo no mesmo gesto, sem mover nada de lugar. Verificado ponta a ponta: o cliente lista e baixa o documento liberado (HTTP 200), recebe "Object not found" no interno, a equipe baixa os dois, a URL pública direta responde 400 e o anônimo não lista nada.
 
 ## Suporte: fila e responsáveis
 

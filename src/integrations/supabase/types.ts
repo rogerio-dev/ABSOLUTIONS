@@ -565,56 +565,234 @@ export type Database = {
       }
       contracts: {
         Row: {
-          client_id: string
-          created_at: string
-          data_fim: string | null
-          data_inicio: string | null
-          escopo: string | null
-          horas_contratadas: number | null
           id: string
+          client_id: string
           numero: string | null
-          status: string
           titulo: string
-          updated_at: string
+          escopo: string | null
           valor: number | null
+          data_inicio: string | null
+          data_fim: string | null
+          horas_contratadas: number | null
+          created_at: string
+          updated_at: string
+          modalidade: "banco_horas" | "fixo_mensal" | "projeto" | "horas_avulsas" | "alocacao"
+          situacao: "rascunho" | "em_negociacao" | "ativo" | "suspenso" | "encerrado" | "cancelado"
+          objeto: string | null
+          produtos: string[]
+          prazo_indeterminado: boolean
+          renovacao_automatica: boolean
+          aviso_previo_dias: number
+          reajuste: "nenhum" | "ipca" | "igpm" | "inpc" | "outro"
+          reajuste_mes: number | null
+          valor_mensal: number | null
+          valor_hora: number | null
+          valor_hora_extra: number | null
+          dia_vencimento: number | null
+          prazo_pagamento_dias: number | null
+          forma_pagamento: string | null
+          nota_fiscal_dia: number | null
+          iss_retido: boolean
+          multa_atraso_pct: number | null
+          juros_mes_pct: number | null
+          horas_mensais: number | null
+          horas_acumulam: boolean
+          horas_validade_meses: number | null
+          sla_policy_id: string | null
+          horario_atendimento: string | null
+          responsavel_id: string | null
+          contato_assinante: string | null
+          contato_tecnico: string | null
+          contato_financeiro: string | null
+          assinado_em: string | null
+          forma_assinatura: string | null
+          rescisao_aviso_dias: number | null
+          multa_rescisao: string | null
+          foro: string | null
+          observacoes: string | null
         }
         Insert: {
-          client_id: string
-          created_at?: string
-          data_fim?: string | null
-          data_inicio?: string | null
-          escopo?: string | null
-          horas_contratadas?: number | null
           id?: string
+          client_id: string
           numero?: string | null
-          status?: string
           titulo: string
-          updated_at?: string
+          escopo?: string | null
           valor?: number | null
+          data_inicio?: string | null
+          data_fim?: string | null
+          horas_contratadas?: number | null
+          created_at?: string
+          updated_at?: string
+          modalidade?: "banco_horas" | "fixo_mensal" | "projeto" | "horas_avulsas" | "alocacao"
+          situacao?: "rascunho" | "em_negociacao" | "ativo" | "suspenso" | "encerrado" | "cancelado"
+          objeto?: string | null
+          produtos?: string[]
+          prazo_indeterminado?: boolean
+          renovacao_automatica?: boolean
+          aviso_previo_dias?: number
+          reajuste?: "nenhum" | "ipca" | "igpm" | "inpc" | "outro"
+          reajuste_mes?: number | null
+          valor_mensal?: number | null
+          valor_hora?: number | null
+          valor_hora_extra?: number | null
+          dia_vencimento?: number | null
+          prazo_pagamento_dias?: number | null
+          forma_pagamento?: string | null
+          nota_fiscal_dia?: number | null
+          iss_retido?: boolean
+          multa_atraso_pct?: number | null
+          juros_mes_pct?: number | null
+          horas_mensais?: number | null
+          horas_acumulam?: boolean
+          horas_validade_meses?: number | null
+          sla_policy_id?: string | null
+          horario_atendimento?: string | null
+          responsavel_id?: string | null
+          contato_assinante?: string | null
+          contato_tecnico?: string | null
+          contato_financeiro?: string | null
+          assinado_em?: string | null
+          forma_assinatura?: string | null
+          rescisao_aviso_dias?: number | null
+          multa_rescisao?: string | null
+          foro?: string | null
+          observacoes?: string | null
         }
         Update: {
-          client_id?: string
-          created_at?: string
-          data_fim?: string | null
-          data_inicio?: string | null
-          escopo?: string | null
-          horas_contratadas?: number | null
           id?: string
+          client_id?: string
           numero?: string | null
-          status?: string
           titulo?: string
-          updated_at?: string
+          escopo?: string | null
           valor?: number | null
+          data_inicio?: string | null
+          data_fim?: string | null
+          horas_contratadas?: number | null
+          created_at?: string
+          updated_at?: string
+          modalidade?: "banco_horas" | "fixo_mensal" | "projeto" | "horas_avulsas" | "alocacao"
+          situacao?: "rascunho" | "em_negociacao" | "ativo" | "suspenso" | "encerrado" | "cancelado"
+          objeto?: string | null
+          produtos?: string[]
+          prazo_indeterminado?: boolean
+          renovacao_automatica?: boolean
+          aviso_previo_dias?: number
+          reajuste?: "nenhum" | "ipca" | "igpm" | "inpc" | "outro"
+          reajuste_mes?: number | null
+          valor_mensal?: number | null
+          valor_hora?: number | null
+          valor_hora_extra?: number | null
+          dia_vencimento?: number | null
+          prazo_pagamento_dias?: number | null
+          forma_pagamento?: string | null
+          nota_fiscal_dia?: number | null
+          iss_retido?: boolean
+          multa_atraso_pct?: number | null
+          juros_mes_pct?: number | null
+          horas_mensais?: number | null
+          horas_acumulam?: boolean
+          horas_validade_meses?: number | null
+          sla_policy_id?: string | null
+          horario_atendimento?: string | null
+          responsavel_id?: string | null
+          contato_assinante?: string | null
+          contato_tecnico?: string | null
+          contato_financeiro?: string | null
+          assinado_em?: string | null
+          forma_assinatura?: string | null
+          rescisao_aviso_dias?: number | null
+          multa_rescisao?: string | null
+          foro?: string | null
+          observacoes?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "contracts_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
+      }
+      contract_documentos: {
+        Row: {
+          id: string
+          contract_id: string
+          tipo: "contrato_assinado" | "aditivo" | "proposta" | "ordem_servico" | "nda" | "anexo_tecnico" | "outro"
+          nome: string
+          caminho: string
+          mime: string | null
+          tamanho_bytes: number | null
+          visivel_cliente: boolean
+          descricao: string | null
+          enviado_por: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          contract_id: string
+          tipo?: "contrato_assinado" | "aditivo" | "proposta" | "ordem_servico" | "nda" | "anexo_tecnico" | "outro"
+          nome: string
+          caminho: string
+          mime?: string | null
+          tamanho_bytes?: number | null
+          visivel_cliente?: boolean
+          descricao?: string | null
+          enviado_por?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          contract_id?: string
+          tipo?: "contrato_assinado" | "aditivo" | "proposta" | "ordem_servico" | "nda" | "anexo_tecnico" | "outro"
+          nome?: string
+          caminho?: string
+          mime?: string | null
+          tamanho_bytes?: number | null
+          visivel_cliente?: boolean
+          descricao?: string | null
+          enviado_por?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      contract_apontamentos: {
+        Row: {
+          id: string
+          contract_id: string
+          data: string
+          horas: number
+          descricao: string
+          consultor_id: string | null
+          consultor_nome: string | null
+          ticket_id: string | null
+          project_id: string | null
+          faturavel: boolean
+          visivel_cliente: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          contract_id: string
+          data?: string
+          horas: number
+          descricao: string
+          consultor_id?: string | null
+          consultor_nome?: string | null
+          ticket_id?: string | null
+          project_id?: string | null
+          faturavel?: boolean
+          visivel_cliente?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          contract_id?: string
+          data?: string
+          horas?: number
+          descricao?: string
+          consultor_id?: string | null
+          consultor_nome?: string | null
+          ticket_id?: string | null
+          project_id?: string | null
+          faturavel?: boolean
+          visivel_cliente?: boolean
+          created_at?: string
+        }
+        Relationships: []
       }
       deals: {
         Row: {
@@ -1069,6 +1247,17 @@ export type Database = {
           cliente: string | null
         }[]
       }
+      saldo_de_horas: {
+        Args: { _contrato: string; _mes?: string }
+        Returns: {
+          mes: string
+          contratadas: number
+          consumidas: number
+          acumulado_anterior: number
+          disponiveis: number
+          saldo: number
+        }[]
+      }
       marcar_email: { Args: { _id: string; _erro?: string | null }; Returns: undefined }
       agentes_de_suporte: {
         Args: never
@@ -1130,6 +1319,10 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "interno" | "analista" | "cliente"
+      contrato_modalidade: "banco_horas" | "fixo_mensal" | "projeto" | "horas_avulsas" | "alocacao"
+      contrato_situacao: "rascunho" | "em_negociacao" | "ativo" | "suspenso" | "encerrado" | "cancelado"
+      contrato_reajuste: "nenhum" | "ipca" | "igpm" | "inpc" | "outro"
+      documento_tipo: "contrato_assinado" | "aditivo" | "proposta" | "ordem_servico" | "nda" | "anexo_tecnico" | "outro"
       deal_stage:
         | "novo"
         | "contatado"
