@@ -33,6 +33,8 @@ type Task = {
   status: "backlog" | "todo" | "doing" | "review" | "done";
   prioridade: string | null;
   responsavel_nome: string | null;
+  responsavel_id: string | null;
+  horas_estimadas: number | null;
   prazo: string | null;
   visivel_cliente: boolean;
 };
@@ -50,6 +52,21 @@ function ProjetoDetalhe() {
   const [open, setOpen] = useState(false);
   const [aberta, setAberta] = useState<Task | null>(null);
 
+  /*
+   * A lista de quem pode executar sai do banco, não de campo digitado. É por
+   * `responsavel_id` que as horas do card chegam ao financeiro — nome escrito à
+   * mão não liga a ninguém, e o custo some sem ninguém perceber.
+   */
+  const { data: equipe } = useQuery({
+    queryKey: ["equipe-interna"],
+    enabled: !!me?.isStaff,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("equipe_interna");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const { data: projeto } = useQuery({
     queryKey: ["projeto", id],
     enabled: !!me,
@@ -65,7 +82,7 @@ function ProjetoDetalhe() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_tasks")
-        .select("id, titulo, descricao, status, prioridade, responsavel_nome, prazo, visivel_cliente")
+        .select("id, titulo, descricao, status, prioridade, responsavel_nome, responsavel_id, horas_estimadas, prazo, visivel_cliente")
         .eq("project_id", id)
         .order("posicao");
       if (error) throw error;
@@ -98,13 +115,15 @@ function ProjetoDetalhe() {
   });
 
   const criar = useMutation({
+    // `responsavel` aqui é o id do perfil; o nome exibido é preenchido pelo
+    // gatilho no banco, para não envelhecer quando alguém renomear o perfil.
     mutationFn: async (form: {
       titulo: string; responsavel: string; prazo: string; horas: string; visivel: boolean;
     }) => {
       const { error } = await supabase.from("project_tasks").insert({
         project_id: id,
         titulo: form.titulo,
-        responsavel_nome: form.responsavel || null,
+        responsavel_id: form.responsavel || null,
         prazo: form.prazo || null,
         horas_estimadas: form.horas ? Number(form.horas.replace(",", ".")) : null,
         visivel_cliente: form.visivel,
@@ -168,7 +187,18 @@ function ProjetoDetalhe() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <Label htmlFor="responsavel">Responsável</Label>
-                      <Input id="responsavel" name="responsavel" />
+                      <select
+                        id="responsavel"
+                        name="responsavel"
+                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                      >
+                        <option value="">Sem responsável</option>
+                        {(equipe ?? []).map((p) => (
+                          <option key={p.id as string} value={p.id as string}>
+                            {p.nome as string} ({p.papel as string})
+                          </option>
+                        ))}
+                      </select>
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor="prazo">Prazo</Label>
@@ -239,6 +269,14 @@ function ProjetoDetalhe() {
               </div>
 
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                {t.responsavel_nome && !t.responsavel_id && (
+                  <span
+                    title="Nome digitado sem vínculo. As horas deste card não chegam ao financeiro — abra o card e escolha a pessoa na lista."
+                    className="inline-flex w-fit items-center gap-1 rounded border border-amber-500/40 px-1.5 py-0.5 text-[10px] text-amber-300"
+                  >
+                    responsável não vinculado
+                  </span>
+                )}
                 {t.responsavel_nome && (
                   <span className="flex items-center gap-1.5">
                     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/15 text-[10px] font-semibold text-primary">

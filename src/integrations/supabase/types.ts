@@ -1604,6 +1604,17 @@ export type Database = {
       }
     }
     Views: {
+      execucao_sem_ficha: {
+        Row: {
+          profile_id: string
+          nome: string | null
+          email: string | null
+          papel: Database["public"]["Enums"]["app_role"] | null
+          horas_concluidas: number
+          horas_em_execucao: number
+        }
+        Relationships: []
+      }
       projeto_horas: {
         Row: {
           id: string | null
@@ -1773,6 +1784,15 @@ export type Database = {
         }[]
       }
       marcar_email: { Args: { _id: string; _erro?: string | null }; Returns: undefined }
+      equipe_interna: {
+        Args: never
+        Returns: {
+          id: string
+          nome: string | null
+          email: string | null
+          papel: Database["public"]["Enums"]["app_role"]
+        }[]
+      }
       agentes_de_suporte: {
         Args: never
         Returns: {

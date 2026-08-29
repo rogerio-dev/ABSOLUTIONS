@@ -83,8 +83,16 @@ Dar ao desenvolvedor a liberdade de apontar hora é dar a ele a caneta que escre
 Aqui a hora é **orçada no card**, antes de o trabalho começar, por quem planeja o projeto. O card já nasce valendo o que vale, e o desenvolvedor recebe pelo card **concluído**.
 
 ```
-projeto (horas vendidas)  →  cards (horas orçadas)  →  card concluído  →  a pagar
+projeto (horas vendidas) → card (horas orçadas + responsável) → concluído → a pagar
 ```
+
+**O elo é `project_tasks.responsavel_id`, não o nome.** O responsável do card era texto livre, e toda a conta de execução soma por `responsavel_id` — que nunca era preenchido. A cadeia parecia pronta e não acumulava nada. Nome digitado também não sobrevive à realidade: "Rogério", "Rogerio" e "Rog." são três pessoas diferentes para um banco de dados, e a soma some sem ninguém perceber.
+
+Agora o responsável sai de `equipe_interna()` — uma fonte só, usada no card, no chamado e no vínculo do colaborador. O nome exibido é preenchido por gatilho a partir do perfil, então renomear alguém não deixa cards com o nome antigo. Card com nome sem vínculo aparece marcado no kanban, porque as horas dele não chegam ao financeiro.
+
+Quando o valor da hora está no projeto (`valor_hora_dev`), ele tem precedência sobre o do colaborador: é o custo daquele trabalho, não o da pessoa em geral.
+
+`execucao_sem_ficha` lista quem da equipe já recebe card mas ainda não tem ficha financeira — sem ela o trabalho sai e a conta não aparece.
 
 O ciclo fecha porque o que entra pelo contrato e o que sai para quem executa saem do mesmo número de horas. Se a soma dos cards passa do que foi vendido, `projeto_horas.horas_livres` fica negativo e o painel avisa.
 

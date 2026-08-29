@@ -85,7 +85,8 @@ function Financeiro() {
 
   const habilitado = !!me?.isAdmin;
   const recarregar = () => {
-    for (const k of ["recebimentos", "pagamentos", "fin-contas", "fin-colaboradores", "fin-projecao", "fin-horas"])
+    for (const k of ["recebimentos", "pagamentos", "fin-contas", "fin-colaboradores",
+                     "fin-projecao", "fin-horas", "execucao-sem-ficha"])
       qc.invalidateQueries({ queryKey: [k] });
   };
 
@@ -158,11 +159,28 @@ function Financeiro() {
     },
   });
 
-  const { data: perfis } = useQuery({
-    queryKey: ["perfis"],
+  /*
+   * Só gente de casa. A lista antiga vinha de `profiles` inteira e trazia
+   * cliente junto — vincular um colaborador a um cliente criaria ficha de
+   * pagamento para quem paga, não para quem recebe.
+   */
+  const { data: equipe } = useQuery({
+    queryKey: ["equipe-interna"],
     enabled: habilitado,
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, full_name, email").order("full_name");
+      const { data, error } = await supabase.rpc("equipe_interna");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  // Quem da equipe já acumula card mas ainda não tem ficha: o trabalho sai e a
+  // conta não aparece.
+  const { data: semFicha } = useQuery({
+    queryKey: ["execucao-sem-ficha"],
+    enabled: habilitado,
+    queryFn: async () => {
+      const { data } = await supabase.from("execucao_sem_ficha").select("*").order("nome");
       return data ?? [];
     },
   });
@@ -547,6 +565,31 @@ function Financeiro() {
               <Plus className="mr-2 h-4 w-4" /> Cadastrar pessoa
             </Button>
           </div>
+          {(semFicha ?? []).length > 0 && (
+            <div className="panel mb-3 border-amber-500/30 bg-amber-500/5 p-4">
+              <p className="text-sm font-medium text-amber-200">
+                {(semFicha ?? []).length} pessoa(s) da equipe sem ficha financeira
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Elas recebem card no kanban, mas sem ficha o trabalho sai e a conta não aparece.
+              </p>
+              <ul className="mt-2 flex flex-col gap-1 text-xs">
+                {(semFicha ?? []).map((p) => (
+                  <li key={p.profile_id as string} className="text-muted-foreground">
+                    <strong className="text-foreground">{p.nome as string}</strong> ({p.papel as string})
+                    {Number(p.horas_concluidas) > 0 || Number(p.horas_em_execucao) > 0 ? (
+                      <span className="text-amber-300">
+                        {" "}
+                        — já tem {horas(Number(p.horas_concluidas))} concluídas e{" "}
+                        {horas(Number(p.horas_em_execucao))} em execução
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <ul className="flex flex-col gap-2">
             {(colaboradores ?? []).map((c) => (
               <li key={c.id as string} className={cn("panel p-4", !c.ativo && "opacity-60")}>
@@ -789,8 +832,10 @@ function Financeiro() {
               <select id="perfil" name="perfil"
                       className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm">
                 <option value="">Sem conta vinculada</option>
-                {(perfis ?? []).map((p) => (
-                  <option key={p.id} value={p.id}>{p.full_name ?? p.email}</option>
+                {(equipe ?? []).map((p) => (
+                  <option key={p.id as string} value={p.id as string}>
+                    {p.nome as string} ({p.papel as string})
+                  </option>
                 ))}
               </select>
               <p className="text-[11px] text-muted-foreground">

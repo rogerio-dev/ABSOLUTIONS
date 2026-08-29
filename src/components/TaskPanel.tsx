@@ -17,6 +17,8 @@ export type TarefaResumo = {
   status: string;
   prioridade: string | null;
   responsavel_nome: string | null;
+  responsavel_id: string | null;
+  horas_estimadas: number | null;
   prazo: string | null;
   visivel_cliente: boolean;
 };
@@ -56,6 +58,35 @@ export function TaskPanel({
   aberto: boolean;
   onFechar: () => void;
 }) {
+  /*
+   * A lista sai do banco: é `responsavel_id` que liga o card ao financeiro.
+   * Trocar aqui atualiza o nome exibido pelo gatilho, do lado do servidor.
+   */
+  const { data: equipe } = useQuery({
+    queryKey: ["equipe-interna"],
+    enabled: !!tarefa,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("equipe_interna");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const trocarResponsavel = useMutation({
+    mutationFn: async (perfil: string | null) => {
+      const { error } = await supabase
+        .from("project_tasks")
+        .update({ responsavel_id: perfil })
+        .eq("id", tarefa!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      toast.success("Responsável atualizado.");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const { data: me } = useMe();
   const qc = useQueryClient();
   const [texto, setTexto] = useState("");
@@ -160,9 +191,40 @@ export function TaskPanel({
               {tarefa.visivel_cliente ? "visível ao cliente" : "interna"}
             </span>
           </div>
-          {tarefa.responsavel_nome && (
+          {me?.isStaff ? (
+            <div className="pt-2 text-left">
+              <label className="mb-1 block text-xs text-muted-foreground">
+                Responsável pela execução
+              </label>
+              <select
+                value={tarefa.responsavel_id ?? ""}
+                onChange={(e) => trocarResponsavel.mutate(e.target.value || null)}
+                disabled={trocarResponsavel.isPending}
+                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+              >
+                <option value="">Sem responsável</option>
+                {(equipe ?? []).map((p) => (
+                  <option key={p.id as string} value={p.id as string}>
+                    {p.nome as string} ({p.papel as string})
+                  </option>
+                ))}
+              </select>
+              {tarefa.responsavel_nome && !tarefa.responsavel_id && (
+                <p className="mt-1 text-[11px] text-amber-300">
+                  Hoje está como "{tarefa.responsavel_nome}", só texto. Escolha a pessoa na lista para
+                  as horas deste card chegarem ao financeiro.
+                </p>
+              )}
+              {Number(tarefa.horas_estimadas ?? 0) > 0 && (
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  {Number(tarefa.horas_estimadas).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} h
+                  orçadas — é o que se paga quando o card for concluído.
+                </p>
+              )}
+            </div>
+          ) : tarefa.responsavel_nome ? (
             <p className="pt-1 text-left text-xs text-muted-foreground">Responsável: {tarefa.responsavel_nome}</p>
-          )}
+          ) : null}
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
