@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { FiltroSituacao, LinhaTitulo, type Titulo } from "@/components/TitulosFinanceiros";
+import { FichaColaborador, type Colaborador } from "@/components/FichaColaborador";
 import { useMe } from "@/lib/auth";
 import { d } from "@/lib/crm";
 import {
@@ -80,9 +81,8 @@ function Financeiro() {
   const [filtroReceber, setFiltroReceber] = useState("abertos");
   const [filtroPagar, setFiltroPagar] = useState("abertos");
   const [novoTitulo, setNovoTitulo] = useState<"receber" | "pagar" | null>(null);
-  const [novoColab, setNovoColab] = useState(false);
-  // "" = ninguém escolhido ainda; "avulso" = pessoa sem conta no sistema.
-  const [quemExecuta, setQuemExecuta] = useState("");
+  // Nulo fechado; "novo" abre em branco; um objeto abre editando.
+  const [ficha, setFicha] = useState<Colaborador | "novo" | null>(null);
   const [novaConta, setNovaConta] = useState(false);
 
   const habilitado = !!me?.isAdmin;
@@ -281,39 +281,6 @@ function Financeiro() {
       setNovoTitulo(null);
       recarregar();
       toast.success("Título lançado.");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const criarColaborador = useMutation({
-    mutationFn: async (f: FormData) => {
-      const escolhido = String(f.get("perfil") ?? "");
-      const avulso = escolhido === "avulso" || !escolhido;
-      // O nome vem do perfil quando há um: uma pessoa, um nome.
-      const daEquipe = (semFicha ?? []).find((p) => p.profile_id === escolhido);
-      const nome = avulso ? String(f.get("nome") ?? "") : ((daEquipe?.nome as string) ?? "");
-      if (!nome.trim()) throw new Error("Escolha quem executa, ou informe o nome.");
-
-      const { error } = await supabase.from("colaboradores").insert({
-        nome,
-        papel: String(f.get("papel") ?? ""),
-        email: avulso ? null : ((daEquipe?.email as string) ?? null),
-        profile_id: avulso ? null : escolhido,
-        modalidade: String(f.get("modalidade") ?? "por_task"),
-        valor_hora: f.get("valor_hora") ? Number(f.get("valor_hora")) : null,
-        valor_mensal: f.get("valor_mensal") ? Number(f.get("valor_mensal")) : null,
-        dia_pagamento: f.get("dia") ? Number(f.get("dia")) : null,
-        tipo_pessoa: String(f.get("tipo_pessoa") ?? "pj"),
-        documento: String(f.get("documento") ?? ""),
-        chave_pix: String(f.get("pix") ?? ""),
-      } as never);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      setNovoColab(false);
-      setQuemExecuta("");
-      recarregar();
-      toast.success("Pessoa cadastrada.");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -572,7 +539,7 @@ function Financeiro() {
             <p className="text-xs text-muted-foreground">
               Quem executa, como é pago e quanto está pendente. O dado bancário só o administrador vê.
             </p>
-            <Button onClick={() => setNovoColab(true)}>
+            <Button onClick={() => setFicha("novo")}>
               <Plus className="mr-2 h-4 w-4" /> Cadastrar pessoa
             </Button>
           </div>
@@ -603,7 +570,15 @@ function Financeiro() {
 
           <ul className="flex flex-col gap-2">
             {(colaboradores ?? []).map((c) => (
-              <li key={c.id as string} className={cn("panel p-4", !c.ativo && "opacity-60")}>
+              <li
+                key={c.id as string}
+                onClick={() => setFicha(c as unknown as Colaborador)}
+                title="Abrir a ficha para editar"
+                className={cn(
+                  "panel cursor-pointer p-4 transition-colors hover:border-primary/50",
+                  !c.ativo && "opacity-60",
+                )}
+              >
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -645,8 +620,16 @@ function Financeiro() {
                   </div>
 
                   {c.modalidade !== "sem_custo" && (
-                    <Button size="sm" disabled={fechar.isPending}
-                            onClick={() => fechar.mutate(c.id as string)}>
+                    <Button
+                      size="sm"
+                      disabled={fechar.isPending}
+                      onClick={(e) => {
+                        // O cartão inteiro abre a ficha; sem isto, fechar o mês
+                        // abriria o formulário por cima do resultado.
+                        e.stopPropagation();
+                        fechar.mutate(c.id as string);
+                      }}
+                    >
                       Fechar mês
                     </Button>
                   )}
@@ -819,113 +802,16 @@ function Financeiro() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={novoColab} onOpenChange={(v) => { setNovoColab(v); if (!v) setQuemExecuta(""); }}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Cadastrar quem executa</DialogTitle>
-          </DialogHeader>
-          <form className="space-y-3" onSubmit={(e) => {
-            e.preventDefault();
-            criarColaborador.mutate(new FormData(e.currentTarget));
-          }}>
-            {/*
-              Começa pela pessoa, não pelo nome. Pedir nome e conta separados é
-              como o mesmo dev vira "Rogério" na ficha e "Rogerio Gadelha" no
-              card: dois nomes, uma pessoa, e a conta não bate.
-
-              A lista traz só quem ainda não tem ficha — cadastrar duas para o
-              mesmo perfil é recusado pelo banco, e é melhor não oferecer do que
-              deixar errar.
-            */}
-            <div className="space-y-1">
-              <Label htmlFor="perfil">Quem executa</Label>
-              <select
-                id="perfil"
-                name="perfil"
-                required
-                value={quemExecuta}
-                onChange={(e) => setQuemExecuta(e.target.value)}
-                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
-              >
-                <option value="">Escolha na equipe…</option>
-                {(semFicha ?? []).map((p) => (
-                  <option key={p.profile_id as string} value={p.profile_id as string}>
-                    {p.nome as string} ({p.papel as string})
-                  </option>
-                ))}
-                <option value="avulso">Alguém sem conta no sistema</option>
-              </select>
-              <p className="text-[11px] text-muted-foreground">
-                É por esta conta que os cards do kanban chegam até a pessoa. Quem não tem conta não
-                acumula horas — serve para quem você paga por fora.
-              </p>
-              {(semFicha ?? []).length === 0 && (
-                <p className="text-[11px] text-muted-foreground">
-                  Toda a equipe já tem ficha. Para cadastrar mais alguém, libere o acesso primeiro em
-                  Equipe &amp; Acessos.
-                </p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              {quemExecuta === "avulso" && (
-                <div className="space-y-1">
-                  <Label htmlFor="nome">Nome</Label>
-                  <Input id="nome" name="nome" required placeholder="Nome de quem recebe" />
-                </div>
-              )}
-              <div className={cn("space-y-1", quemExecuta !== "avulso" && "col-span-2")}>
-                <Label htmlFor="papel">Papel</Label>
-                <Input id="papel" name="papel" placeholder="Desenvolvedor Fluig" />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="modalidade">Como é pago</Label>
-              <select id="modalidade" name="modalidade" defaultValue="por_task"
-                      className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm">
-                {MODALIDADES_PAGAMENTO.map((m) => (
-                  <option key={m.id} value={m.id}>{m.label} — {m.ajuda}</option>
-                ))}
-              </select>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="valor_hora">Valor da hora</Label>
-                <Input id="valor_hora" name="valor_hora" type="number" step="0.01" />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="valor_mensal">Valor mensal</Label>
-                <Input id="valor_mensal" name="valor_mensal" type="number" step="0.01" />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="dia">Dia do pagamento</Label>
-                <Input id="dia" name="dia" type="number" min={1} max={31} defaultValue={5} />
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="tipo_pessoa">Pessoa</Label>
-                <select id="tipo_pessoa" name="tipo_pessoa" defaultValue="pj"
-                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm">
-                  <option value="pj">Jurídica</option>
-                  <option value="pf">Física</option>
-                </select>
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="documento">CNPJ ou CPF</Label>
-                <Input id="documento" name="documento" />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="pix">Chave PIX</Label>
-                <Input id="pix" name="pix" />
-              </div>
-            </div>
-            <Button type="submit" className="w-full" disabled={criarColaborador.isPending}>
-              Cadastrar
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <FichaColaborador
+        aberto={!!ficha}
+        colaborador={ficha === "novo" ? null : ficha}
+        semFicha={(semFicha ?? []).map((p) => ({
+          profile_id: p.profile_id as string,
+          nome: p.nome as string | null,
+          papel: p.papel as string | null,
+        }))}
+        onFechar={() => setFicha(null)}
+      />
 
       <Dialog open={novaConta} onOpenChange={setNovaConta}>
         <DialogContent className="sm:max-w-md">

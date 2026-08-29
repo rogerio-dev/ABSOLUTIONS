@@ -57,6 +57,28 @@ function ProjetoDetalhe() {
    * `responsavel_id` que as horas do card chegam ao financeiro — nome escrito à
    * mão não liga a ninguém, e o custo some sem ninguém perceber.
    */
+  const { data: saude } = useQuery({
+    queryKey: ["projeto-horas", id],
+    enabled: !!me?.isStaff,
+    queryFn: async () => {
+      const { data } = await supabase.from("projeto_horas").select("*").eq("id", id).maybeSingle();
+      return data;
+    },
+  });
+
+  const salvarOrcamento = useMutation({
+    mutationFn: async (campos: { horas_orcadas: number | null; valor_hora_dev: number | null }) => {
+      const { error } = await supabase.from("projects").update(campos).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["projeto-horas", id] });
+      qc.invalidateQueries({ queryKey: ["projeto", id] });
+      toast.success("Orçamento do projeto atualizado.");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const { data: equipe } = useQuery({
     queryKey: ["equipe-interna"],
     enabled: !!me?.isStaff,
@@ -225,6 +247,92 @@ function ProjetoDetalhe() {
           ) : null
         }
       />
+
+      {me?.isStaff && saude && (
+        <section className="panel mb-4 p-4">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h2 className="text-sm font-semibold">Orçamento do projeto</h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                As horas vendidas são o teto. A soma dos cards não deveria passar disso — é o que o
+                cliente contratou.
+              </p>
+            </div>
+            <form
+              className="flex flex-wrap items-end gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const f = new FormData(e.currentTarget);
+                const num = (k: string) => {
+                  const v = String(f.get(k) ?? "").trim();
+                  return v ? Number(v.replace(",", ".")) : null;
+                };
+                salvarOrcamento.mutate({
+                  horas_orcadas: num("horas_orcadas"),
+                  valor_hora_dev: num("valor_hora_dev"),
+                });
+              }}
+            >
+              <div>
+                <label className="mb-1 block text-[11px] text-muted-foreground">Horas vendidas</label>
+                <Input
+                  name="horas_orcadas"
+                  type="number"
+                  step="0.5"
+                  className="h-9 w-28"
+                  defaultValue={(saude.horas_orcadas as number | null) ?? ""}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] text-muted-foreground">
+                  Custo da hora
+                </label>
+                <Input
+                  name="valor_hora_dev"
+                  type="number"
+                  step="0.01"
+                  className="h-9 w-28"
+                  defaultValue={(saude.valor_hora_dev as number | null) ?? ""}
+                />
+              </div>
+              <Button type="submit" size="sm" disabled={salvarOrcamento.isPending}>
+                Salvar
+              </Button>
+            </form>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-5">
+            {[
+              ["Vendidas", saude.horas_orcadas],
+              ["Nos cards", saude.horas_nos_cards],
+              ["Em execução", saude.horas_pendentes],
+              ["A pagar", saude.horas_a_pagar],
+              ["Saldo", saude.horas_livres],
+            ].map(([r, v], i) => {
+              const n = Number(v ?? 0);
+              return (
+                <div key={r as string}>
+                  <p className="text-[11px] text-muted-foreground">{r as string}</p>
+                  <p
+                    className={`font-display text-lg font-semibold ${
+                      i === 4 ? (n < 0 ? "text-rose-400" : "text-emerald-400") : "text-foreground"
+                    }`}
+                  >
+                    {n.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} h
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+
+          {Number(saude.horas_livres ?? 0) < 0 && (
+            <p className="mt-3 text-xs text-amber-300">
+              Os cards somam mais horas do que foi vendido. Ou o orçamento está desatualizado, ou o
+              projeto vai custar mais do que rendeu.
+            </p>
+          )}
+        </section>
+      )}
 
       <Kanban
         columns={TASK_STATUS}
