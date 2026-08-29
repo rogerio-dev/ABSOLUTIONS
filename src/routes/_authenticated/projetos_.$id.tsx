@@ -98,12 +98,15 @@ function ProjetoDetalhe() {
   });
 
   const criar = useMutation({
-    mutationFn: async (form: { titulo: string; responsavel: string; prazo: string; visivel: boolean }) => {
+    mutationFn: async (form: {
+      titulo: string; responsavel: string; prazo: string; horas: string; visivel: boolean;
+    }) => {
       const { error } = await supabase.from("project_tasks").insert({
         project_id: id,
         titulo: form.titulo,
         responsavel_nome: form.responsavel || null,
         prazo: form.prazo || null,
+        horas_estimadas: form.horas ? Number(form.horas.replace(",", ".")) : null,
         visivel_cliente: form.visivel,
         status: "backlog",
       });
@@ -153,6 +156,7 @@ function ProjetoDetalhe() {
                       titulo: String(f.get("titulo") ?? ""),
                       responsavel: String(f.get("responsavel") ?? ""),
                       prazo: String(f.get("prazo") ?? ""),
+                      horas: String(f.get("horas") ?? ""),
                       visivel: f.get("visivel") === "on",
                     });
                   }}
@@ -170,6 +174,14 @@ function ProjetoDetalhe() {
                       <Label htmlFor="prazo">Prazo</Label>
                       <Input id="prazo" name="prazo" type="date" />
                     </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="horas">Horas orçadas</Label>
+                    <Input id="horas" name="horas" type="number" step="0.5" min="0" placeholder="8" />
+                    <p className="text-[11px] text-muted-foreground">
+                      É o que se paga a quem executar, quando o card for concluído. Definido aqui, antes
+                      de começar — não apontado depois.
+                    </p>
                   </div>
                   <label className="flex items-center gap-2 text-sm">
                     <input type="checkbox" name="visivel" defaultChecked /> Visível para o cliente
@@ -195,9 +207,18 @@ function ProjetoDetalhe() {
         }
         renderCard={(t) => {
           const comentarios = comentariosPorTarefa?.[t.id] ?? 0;
+          const horasDoCard = Number((t as { horas_estimadas?: number | null }).horas_estimadas ?? 0);
           const atrasada = t.prazo && t.status !== "done" && new Date(t.prazo) < new Date();
           return (
             <div className="flex flex-col gap-2">
+              {horasDoCard > 0 && (
+                <span
+                  title="Horas orçadas para este card. É o que se paga a quem executa quando ele é concluído."
+                  className="inline-flex w-fit items-center gap-1 rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                >
+                  {horasDoCard.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} h
+                </span>
+              )}
               <p className="text-sm font-medium leading-snug">{t.titulo}</p>
 
               <div className="flex flex-wrap items-center gap-1.5">

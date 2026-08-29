@@ -16,6 +16,7 @@ import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedContratosRouteImport } from './routes/_authenticated/contratos'
 import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
+import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
 import { Route as AuthenticatedFunilRouteImport } from './routes/_authenticated/funil'
 import { Route as AuthenticatedMarketingRouteImport } from './routes/_authenticated/marketing'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
@@ -62,6 +63,11 @@ const AuthenticatedContratosRoute = AuthenticatedContratosRouteImport.update({
 const AuthenticatedEquipeRoute = AuthenticatedEquipeRouteImport.update({
   id: '/equipe',
   path: '/equipe',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFinanceiroRoute = AuthenticatedFinanceiroRouteImport.update({
+  id: '/financeiro',
+  path: '/financeiro',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedFunilRoute = AuthenticatedFunilRouteImport.update({
@@ -140,6 +146,7 @@ export interface FileRoutesByFullPath {
   '/clientes': typeof AuthenticatedClientesRoute
   '/contratos': typeof AuthenticatedContratosRoute
   '/equipe': typeof AuthenticatedEquipeRoute
+  '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/funil': typeof AuthenticatedFunilRoute
   '/marketing': typeof AuthenticatedMarketingRoute
   '/painel': typeof AuthenticatedPainelRoute
@@ -161,6 +168,7 @@ export interface FileRoutesByTo {
   '/clientes': typeof AuthenticatedClientesRoute
   '/contratos': typeof AuthenticatedContratosRoute
   '/equipe': typeof AuthenticatedEquipeRoute
+  '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/funil': typeof AuthenticatedFunilRoute
   '/marketing': typeof AuthenticatedMarketingRoute
   '/painel': typeof AuthenticatedPainelRoute
@@ -184,6 +192,7 @@ export interface FileRoutesById {
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/contratos': typeof AuthenticatedContratosRoute
   '/_authenticated/equipe': typeof AuthenticatedEquipeRoute
+  '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
   '/_authenticated/funil': typeof AuthenticatedFunilRoute
   '/_authenticated/marketing': typeof AuthenticatedMarketingRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
@@ -207,6 +216,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/contratos'
     | '/equipe'
+    | '/financeiro'
     | '/funil'
     | '/marketing'
     | '/painel'
@@ -228,6 +238,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/contratos'
     | '/equipe'
+    | '/financeiro'
     | '/funil'
     | '/marketing'
     | '/painel'
@@ -250,6 +261,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clientes'
     | '/_authenticated/contratos'
     | '/_authenticated/equipe'
+    | '/_authenticated/financeiro'
     | '/_authenticated/funil'
     | '/_authenticated/marketing'
     | '/_authenticated/painel'
@@ -320,6 +332,13 @@ declare module '@tanstack/react-router' {
       path: '/equipe'
       fullPath: '/equipe'
       preLoaderRoute: typeof AuthenticatedEquipeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/financeiro': {
+      id: '/_authenticated/financeiro'
+      path: '/financeiro'
+      fullPath: '/financeiro'
+      preLoaderRoute: typeof AuthenticatedFinanceiroRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/funil': {
@@ -421,6 +440,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedContratosRoute: typeof AuthenticatedContratosRoute
   AuthenticatedEquipeRoute: typeof AuthenticatedEquipeRoute
+  AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
   AuthenticatedFunilRoute: typeof AuthenticatedFunilRoute
   AuthenticatedMarketingRoute: typeof AuthenticatedMarketingRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
@@ -441,6 +461,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedContratosRoute: AuthenticatedContratosRoute,
   AuthenticatedEquipeRoute: AuthenticatedEquipeRoute,
+  AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
   AuthenticatedFunilRoute: AuthenticatedFunilRoute,
   AuthenticatedMarketingRoute: AuthenticatedMarketingRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,

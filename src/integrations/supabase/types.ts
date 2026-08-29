@@ -749,6 +749,309 @@ export type Database = {
         }
         Relationships: []
       }
+      colaboradores: {
+        Row: {
+          id: string
+          profile_id: string | null
+          nome: string
+          papel: string | null
+          email: string | null
+          telefone: string | null
+          tipo_pessoa: "pf" | "pj"
+          documento: string | null
+          razao_social: string | null
+          modalidade: "fixo_mensal" | "por_task" | "por_hora" | "sem_custo"
+          valor_mensal: number | null
+          valor_hora: number | null
+          dia_pagamento: number | null
+          banco: string | null
+          agencia: string | null
+          conta: string | null
+          chave_pix: string | null
+          ativo: boolean
+          observacoes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          profile_id?: string | null
+          nome: string
+          papel?: string | null
+          email?: string | null
+          telefone?: string | null
+          tipo_pessoa?: "pf" | "pj"
+          documento?: string | null
+          razao_social?: string | null
+          modalidade?: "fixo_mensal" | "por_task" | "por_hora" | "sem_custo"
+          valor_mensal?: number | null
+          valor_hora?: number | null
+          dia_pagamento?: number | null
+          banco?: string | null
+          agencia?: string | null
+          conta?: string | null
+          chave_pix?: string | null
+          ativo?: boolean
+          observacoes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          profile_id?: string | null
+          nome?: string
+          papel?: string | null
+          email?: string | null
+          telefone?: string | null
+          tipo_pessoa?: "pf" | "pj"
+          documento?: string | null
+          razao_social?: string | null
+          modalidade?: "fixo_mensal" | "por_task" | "por_hora" | "sem_custo"
+          valor_mensal?: number | null
+          valor_hora?: number | null
+          dia_pagamento?: number | null
+          banco?: string | null
+          agencia?: string | null
+          conta?: string | null
+          chave_pix?: string | null
+          ativo?: boolean
+          observacoes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      financeiro_contas: {
+        Row: {
+          id: string
+          nome: string
+          tipo: "corrente" | "poupanca" | "caixa" | "aplicacao"
+          banco: string | null
+          saldo_inicial: number
+          saldo_inicial_em: string
+          ativa: boolean
+          ordem: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          nome: string
+          tipo?: "corrente" | "poupanca" | "caixa" | "aplicacao"
+          banco?: string | null
+          saldo_inicial?: number
+          saldo_inicial_em?: string
+          ativa?: boolean
+          ordem?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          nome?: string
+          tipo?: "corrente" | "poupanca" | "caixa" | "aplicacao"
+          banco?: string | null
+          saldo_inicial?: number
+          saldo_inicial_em?: string
+          ativa?: boolean
+          ordem?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      recebimentos: {
+        Row: {
+          id: string
+          client_id: string
+          contract_id: string | null
+          project_id: string | null
+          descricao: string
+          competencia: string
+          valor: number
+          vencimento: string
+          situacao: "previsto" | "emitido" | "pago" | "cancelado"
+          nf_numero: string | null
+          nf_emitida_em: string | null
+          pago_em: string | null
+          valor_pago: number | null
+          conta_id: string | null
+          observacoes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          contract_id?: string | null
+          project_id?: string | null
+          descricao: string
+          competencia: string
+          valor: number
+          vencimento: string
+          situacao?: "previsto" | "emitido" | "pago" | "cancelado"
+          nf_numero?: string | null
+          nf_emitida_em?: string | null
+          pago_em?: string | null
+          valor_pago?: number | null
+          conta_id?: string | null
+          observacoes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          contract_id?: string | null
+          project_id?: string | null
+          descricao?: string
+          competencia?: string
+          valor?: number
+          vencimento?: string
+          situacao?: "previsto" | "emitido" | "pago" | "cancelado"
+          nf_numero?: string | null
+          nf_emitida_em?: string | null
+          pago_em?: string | null
+          valor_pago?: number | null
+          conta_id?: string | null
+          observacoes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pagamentos: {
+        Row: {
+          id: string
+          tipo: "colaborador" | "fornecedor" | "imposto" | "despesa"
+          colaborador_id: string | null
+          descricao: string
+          categoria: string | null
+          competencia: string
+          valor: number
+          vencimento: string
+          situacao: "previsto" | "emitido" | "pago" | "cancelado"
+          nf_numero: string | null
+          nf_recebida_em: string | null
+          pago_em: string | null
+          valor_pago: number | null
+          conta_id: string | null
+          recorrente: boolean
+          observacoes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tipo?: "colaborador" | "fornecedor" | "imposto" | "despesa"
+          colaborador_id?: string | null
+          descricao: string
+          categoria?: string | null
+          competencia: string
+          valor: number
+          vencimento: string
+          situacao?: "previsto" | "emitido" | "pago" | "cancelado"
+          nf_numero?: string | null
+          nf_recebida_em?: string | null
+          pago_em?: string | null
+          valor_pago?: number | null
+          conta_id?: string | null
+          recorrente?: boolean
+          observacoes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tipo?: "colaborador" | "fornecedor" | "imposto" | "despesa"
+          colaborador_id?: string | null
+          descricao?: string
+          categoria?: string | null
+          competencia?: string
+          valor?: number
+          vencimento?: string
+          situacao?: "previsto" | "emitido" | "pago" | "cancelado"
+          nf_numero?: string | null
+          nf_recebida_em?: string | null
+          pago_em?: string | null
+          valor_pago?: number | null
+          conta_id?: string | null
+          recorrente?: boolean
+          observacoes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pagamento_itens: {
+        Row: {
+          id: string
+          pagamento_id: string
+          task_id: string | null
+          descricao: string
+          horas: number
+          valor_hora: number
+          valor: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          pagamento_id: string
+          task_id?: string | null
+          descricao: string
+          horas?: number
+          valor_hora?: number
+          valor?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          pagamento_id?: string
+          task_id?: string | null
+          descricao?: string
+          horas?: number
+          valor_hora?: number
+          valor?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      financeiro_documentos: {
+        Row: {
+          id: string
+          recebimento_id: string | null
+          pagamento_id: string | null
+          tipo: "nf_emitida" | "nf_recebida" | "boleto" | "comprovante" | "contrato" | "outro"
+          nome: string
+          caminho: string
+          mime: string | null
+          tamanho_bytes: number | null
+          enviado_por: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          recebimento_id?: string | null
+          pagamento_id?: string | null
+          tipo?: "nf_emitida" | "nf_recebida" | "boleto" | "comprovante" | "contrato" | "outro"
+          nome: string
+          caminho: string
+          mime?: string | null
+          tamanho_bytes?: number | null
+          enviado_por?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          recebimento_id?: string | null
+          pagamento_id?: string | null
+          tipo?: "nf_emitida" | "nf_recebida" | "boleto" | "comprovante" | "contrato" | "outro"
+          nome?: string
+          caminho?: string
+          mime?: string | null
+          tamanho_bytes?: number | null
+          enviado_por?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       prospect_ondas: {
         Row: {
           id: string
@@ -1088,116 +1391,99 @@ export type Database = {
       }
       project_tasks: {
         Row: {
-          created_at: string
-          descricao: string | null
-          horas_estimadas: number | null
           id: string
-          posicao: number
-          prazo: string | null
-          prioridade: string
           project_id: string
+          titulo: string
+          descricao: string | null
+          status: string
+          prioridade: string
           responsavel_id: string | null
           responsavel_nome: string | null
-          status: Database["public"]["Enums"]["task_status"]
-          titulo: string
-          updated_at: string
+          prazo: string | null
+          horas_estimadas: number | null
+          posicao: number
           visivel_cliente: boolean
+          created_at: string
+          updated_at: string
         }
         Insert: {
-          created_at?: string
-          descricao?: string | null
-          horas_estimadas?: number | null
           id?: string
-          posicao?: number
-          prazo?: string | null
-          prioridade?: string
           project_id: string
+          titulo: string
+          descricao?: string | null
+          status?: string
+          prioridade?: string
           responsavel_id?: string | null
           responsavel_nome?: string | null
-          status?: Database["public"]["Enums"]["task_status"]
-          titulo: string
-          updated_at?: string
+          prazo?: string | null
+          horas_estimadas?: number | null
+          posicao?: number
           visivel_cliente?: boolean
+          created_at?: string
+          updated_at?: string
         }
         Update: {
-          created_at?: string
-          descricao?: string | null
-          horas_estimadas?: number | null
           id?: string
-          posicao?: number
-          prazo?: string | null
-          prioridade?: string
           project_id?: string
+          titulo?: string
+          descricao?: string | null
+          status?: string
+          prioridade?: string
           responsavel_id?: string | null
           responsavel_nome?: string | null
-          status?: Database["public"]["Enums"]["task_status"]
-          titulo?: string
-          updated_at?: string
+          prazo?: string | null
+          horas_estimadas?: number | null
+          posicao?: number
           visivel_cliente?: boolean
+          created_at?: string
+          updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "project_tasks_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       projects: {
         Row: {
+          id: string
           client_id: string
           contract_id: string | null
-          created_at: string
-          data_fim: string | null
-          data_inicio: string | null
-          descricao: string | null
-          id: string
           nome: string
+          descricao: string | null
           status: string
+          data_inicio: string | null
+          data_fim: string | null
+          created_at: string
           updated_at: string
+          horas_orcadas: number | null
+          valor_hora_dev: number | null
         }
         Insert: {
+          id?: string
           client_id: string
           contract_id?: string | null
-          created_at?: string
-          data_fim?: string | null
-          data_inicio?: string | null
-          descricao?: string | null
-          id?: string
           nome: string
+          descricao?: string | null
           status?: string
+          data_inicio?: string | null
+          data_fim?: string | null
+          created_at?: string
           updated_at?: string
+          horas_orcadas?: number | null
+          valor_hora_dev?: number | null
         }
         Update: {
+          id?: string
           client_id?: string
           contract_id?: string | null
-          created_at?: string
-          data_fim?: string | null
-          data_inicio?: string | null
-          descricao?: string | null
-          id?: string
           nome?: string
+          descricao?: string | null
           status?: string
+          data_inicio?: string | null
+          data_fim?: string | null
+          created_at?: string
           updated_at?: string
+          horas_orcadas?: number | null
+          valor_hora_dev?: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "projects_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "projects_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "contracts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       comment_mentions: {
         Row: {
@@ -1318,6 +1604,54 @@ export type Database = {
       }
     }
     Views: {
+      projeto_horas: {
+        Row: {
+          id: string | null
+          nome: string | null
+          client_id: string | null
+          horas_orcadas: number | null
+          valor_hora_dev: number | null
+          horas_nos_cards: number | null
+          horas_concluidas: number | null
+          horas_pendentes: number | null
+          horas_pagas: number | null
+          horas_a_pagar: number | null
+          horas_livres: number | null
+          cards: number | null
+        }
+        Relationships: []
+      }
+      colaborador_horas: {
+        Row: {
+          id: string | null
+          nome: string | null
+          modalidade: "fixo_mensal" | "por_task" | "por_hora" | "sem_custo" | null
+          valor_hora: number | null
+          valor_mensal: number | null
+          ativo: boolean | null
+          horas_pendentes: number | null
+          horas_a_pagar: number | null
+          horas_pagas: number | null
+          valor_a_pagar: number | null
+          cards_a_pagar: number | null
+        }
+        Relationships: []
+      }
+      saldo_das_contas: {
+        Row: {
+          id: string | null
+          nome: string | null
+          tipo: "corrente" | "poupanca" | "caixa" | "aplicacao" | null
+          banco: string | null
+          ativa: boolean | null
+          saldo_inicial: number | null
+          saldo_inicial_em: string | null
+          entradas: number | null
+          saidas: number | null
+          saldo: number | null
+        }
+        Relationships: []
+      }
       prospeccao: {
         Row: {
           id: string | null
@@ -1391,6 +1725,23 @@ export type Database = {
           responder_para: string
           autor_nome: string | null
           cliente: string | null
+        }[]
+      }
+      fechar_colaborador: {
+        Args: { _colaborador: string; _competencia?: string; _vencimento?: string | null }
+        Returns: string | null
+      }
+      gerar_mensalidades: { Args: { _competencia?: string }; Returns: number }
+      projecao_financeira: {
+        Args: { _meses?: number }
+        Returns: {
+          mes: string
+          a_receber: number
+          recebido: number
+          a_pagar: number
+          pago: number
+          recorrentes: number
+          resultado: number
         }[]
       }
       montar_onda: {
@@ -1482,6 +1833,12 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "interno" | "analista" | "cliente"
+      pagamento_modalidade: "fixo_mensal" | "por_task" | "por_hora" | "sem_custo"
+      pessoa_tipo: "pf" | "pj"
+      titulo_situacao: "previsto" | "emitido" | "pago" | "cancelado"
+      pagamento_tipo: "colaborador" | "fornecedor" | "imposto" | "despesa"
+      conta_tipo: "corrente" | "poupanca" | "caixa" | "aplicacao"
+      financeiro_documento_tipo: "nf_emitida" | "nf_recebida" | "boleto" | "comprovante" | "contrato" | "outro"
       alvo_situacao: "a_contatar" | "tentando" | "respondeu" | "reuniao_marcada" | "virou_oportunidade" | "descartado"
       contrato_modalidade: "banco_horas" | "fixo_mensal" | "projeto" | "horas_avulsas" | "alocacao"
       contrato_situacao: "rascunho" | "em_negociacao" | "ativo" | "suspenso" | "encerrado" | "cancelado"

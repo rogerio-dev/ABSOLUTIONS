@@ -12,6 +12,7 @@ import {
   LifeBuoy,
   Palette,
   Target,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMe, useSignOut } from "@/lib/auth";
@@ -24,6 +25,7 @@ const staffNav = [
   { to: "/funil", label: "Funil", icon: KanbanSquare },
   { to: "/agenda", label: "Agenda", icon: CalendarDays },
   { to: "/contratos", label: "Contratos", icon: FileSignature },
+  { to: "/financeiro", label: "Financeiro", icon: Wallet },
   { to: "/projetos", label: "Projetos", icon: FolderKanban },
   { to: "/tickets", label: "Suporte", icon: LifeBuoy },
   { to: "/marketing", label: "Marketing", icon: Palette },

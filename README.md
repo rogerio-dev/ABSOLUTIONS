@@ -12,6 +12,7 @@ Site institucional, CRM interno e portal do cliente — **uma única aplicação
 | `/marketing` | Central da marca: logotipo, ícones, paleta e peças prontas | equipe |
 | `/contratos`, `/contratos/$id` | Contratos: vigência, valores, horas, documentos | equipe |
 | `/prospeccao`, `/prospeccao/$id` | Base ranqueada e ondas de abordagem | equipe |
+| `/financeiro` | Caixa, a receber, a pagar e custo de execução | **admin** |
 | `/portal` | Portal onde o cliente acompanha contratos e projetos | cliente |
 
 O botão **Acesso**, no canto superior direito do site, leva direto à tela de login — sem sair da aplicação e sem recarregar a página. Quem já está autenticado vê **Painel** no lugar.
@@ -72,6 +73,51 @@ Migrações em `supabase/migrations/`.
 
 E-mail e senha via Supabase. O botão "Continuar com Google" usa o OAuth nativo do Supabase — exige habilitar o provedor em **Authentication → Providers** no painel. Sem isso, o botão retorna erro e apenas o login por senha funciona.
 
+
+## Financeiro
+
+### A decisão que organiza o módulo: horas não se apontam
+
+Dar ao desenvolvedor a liberdade de apontar hora é dar a ele a caneta que escreve a própria fatura. Na prática o apontamento infla, e ninguém consegue contestar depois — o trabalho já foi feito, e a memória de quanto demorou é de quem fez.
+
+Aqui a hora é **orçada no card**, antes de o trabalho começar, por quem planeja o projeto. O card já nasce valendo o que vale, e o desenvolvedor recebe pelo card **concluído**.
+
+```
+projeto (horas vendidas)  →  cards (horas orçadas)  →  card concluído  →  a pagar
+```
+
+O ciclo fecha porque o que entra pelo contrato e o que sai para quem executa saem do mesmo número de horas. Se a soma dos cards passa do que foi vendido, `projeto_horas.horas_livres` fica negativo e o painel avisa.
+
+**Atenção a uma distinção que parece a mesma coisa e não é:** `contract_apontamentos` continua existindo, e é apontamento livre — mas consome o banco de horas **do cliente**. São medidas diferentes, com donos diferentes. Misturá-las é como o custo deixa de bater com a receita.
+
+### Modalidades de pagamento
+
+| Modalidade | Como funciona |
+|---|---|
+| **Por card concluído** | Horas orçadas dos cards que concluiu. É o padrão |
+| **Fixo mensal** | Valor fechado, independente do volume |
+| **Por hora apontada** | Só para caso excepcional — é o modelo que costuma inflar |
+| **Sem custo** | Sócio ou o próprio dono; entra na conta de horas, não gera título |
+
+`fechar_colaborador()` junta num título só todos os cards concluídos e ainda não pagos. Um índice único em `pagamento_itens.task_id` garante que **um card é pago uma vez só** — é essa linha que impede o mesmo trabalho entrar em dois fechamentos.
+
+### A receber, a pagar e caixa
+
+`gerar_mensalidades()` cria os títulos do mês a partir dos contratos ativos com valor mensal, respeitando o dia de vencimento de cada um. Roda quantas vezes quiser: um índice único por contrato e competência não deixa duplicar a cobrança do cliente.
+
+O saldo **não é recalculado desde o começo dos tempos**: parte de uma foto que você informa e soma o que passou depois dela. Reconstruir saldo desde a origem exige que todo lançamento histórico exista, e ele nunca existe.
+
+Situação vencida não muda sozinha no banco — mudar dado por passagem de tempo obrigaria alguém a rodar rotina todo dia. O atraso é derivado na leitura, que é sempre verdade no momento em que se olha.
+
+A projeção repete nos meses futuros as despesas marcadas como recorrentes. Sem isso ela mostraria lucro que não existe, porque a hospedagem e o contador vão continuar chegando.
+
+### Notas fiscais
+
+Bucket privado `financeiro`, com as duas pontas: a NF que **emitimos** para o cliente e a que **recebemos** do fornecedor ou do dev. Também boleto e comprovante. O acesso sai de URL assinada de 60 segundos.
+
+### Quem enxerga
+
+**Só o administrador.** Nem o time interno, nem o analista de suporte, nem o cliente veem qualquer linha do financeiro — inclusive o dado bancário de quem executa, que é o mais sensível do sistema. Verificado: analista e cliente recebem zero linhas em `colaboradores` e `pagamentos`.
 
 ## Prospecção
 
