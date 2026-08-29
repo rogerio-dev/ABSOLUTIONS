@@ -81,6 +81,8 @@ function Financeiro() {
   const [filtroPagar, setFiltroPagar] = useState("abertos");
   const [novoTitulo, setNovoTitulo] = useState<"receber" | "pagar" | null>(null);
   const [novoColab, setNovoColab] = useState(false);
+  // "" = ninguém escolhido ainda; "avulso" = pessoa sem conta no sistema.
+  const [quemExecuta, setQuemExecuta] = useState("");
   const [novaConta, setNovaConta] = useState(false);
 
   const habilitado = !!me?.isAdmin;
@@ -285,10 +287,18 @@ function Financeiro() {
 
   const criarColaborador = useMutation({
     mutationFn: async (f: FormData) => {
+      const escolhido = String(f.get("perfil") ?? "");
+      const avulso = escolhido === "avulso" || !escolhido;
+      // O nome vem do perfil quando há um: uma pessoa, um nome.
+      const daEquipe = (semFicha ?? []).find((p) => p.profile_id === escolhido);
+      const nome = avulso ? String(f.get("nome") ?? "") : ((daEquipe?.nome as string) ?? "");
+      if (!nome.trim()) throw new Error("Escolha quem executa, ou informe o nome.");
+
       const { error } = await supabase.from("colaboradores").insert({
-        nome: String(f.get("nome") ?? ""),
+        nome,
         papel: String(f.get("papel") ?? ""),
-        profile_id: String(f.get("perfil") ?? "") || null,
+        email: avulso ? null : ((daEquipe?.email as string) ?? null),
+        profile_id: avulso ? null : escolhido,
         modalidade: String(f.get("modalidade") ?? "por_task"),
         valor_hora: f.get("valor_hora") ? Number(f.get("valor_hora")) : null,
         valor_mensal: f.get("valor_mensal") ? Number(f.get("valor_mensal")) : null,
@@ -301,6 +311,7 @@ function Financeiro() {
     },
     onSuccess: () => {
       setNovoColab(false);
+      setQuemExecuta("");
       recarregar();
       toast.success("Pessoa cadastrada.");
     },
@@ -808,7 +819,7 @@ function Financeiro() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={novoColab} onOpenChange={setNovoColab}>
+      <Dialog open={novoColab} onOpenChange={(v) => { setNovoColab(v); if (!v) setQuemExecuta(""); }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Cadastrar quem executa</DialogTitle>
@@ -817,31 +828,56 @@ function Financeiro() {
             e.preventDefault();
             criarColaborador.mutate(new FormData(e.currentTarget));
           }}>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="nome">Nome</Label>
-                <Input id="nome" name="nome" required />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="papel">Papel</Label>
-                <Input id="papel" name="papel" placeholder="Desenvolvedor Fluig" />
-              </div>
-            </div>
+            {/*
+              Começa pela pessoa, não pelo nome. Pedir nome e conta separados é
+              como o mesmo dev vira "Rogério" na ficha e "Rogerio Gadelha" no
+              card: dois nomes, uma pessoa, e a conta não bate.
+
+              A lista traz só quem ainda não tem ficha — cadastrar duas para o
+              mesmo perfil é recusado pelo banco, e é melhor não oferecer do que
+              deixar errar.
+            */}
             <div className="space-y-1">
-              <Label htmlFor="perfil">Conta no sistema</Label>
-              <select id="perfil" name="perfil"
-                      className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm">
-                <option value="">Sem conta vinculada</option>
-                {(equipe ?? []).map((p) => (
-                  <option key={p.id as string} value={p.id as string}>
+              <Label htmlFor="perfil">Quem executa</Label>
+              <select
+                id="perfil"
+                name="perfil"
+                required
+                value={quemExecuta}
+                onChange={(e) => setQuemExecuta(e.target.value)}
+                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+              >
+                <option value="">Escolha na equipe…</option>
+                {(semFicha ?? []).map((p) => (
+                  <option key={p.profile_id as string} value={p.profile_id as string}>
                     {p.nome as string} ({p.papel as string})
                   </option>
                 ))}
+                <option value="avulso">Alguém sem conta no sistema</option>
               </select>
               <p className="text-[11px] text-muted-foreground">
-                É por esta conta que os cards do kanban chegam até a pessoa. Sem vínculo, ela não acumula
-                horas a pagar.
+                É por esta conta que os cards do kanban chegam até a pessoa. Quem não tem conta não
+                acumula horas — serve para quem você paga por fora.
               </p>
+              {(semFicha ?? []).length === 0 && (
+                <p className="text-[11px] text-muted-foreground">
+                  Toda a equipe já tem ficha. Para cadastrar mais alguém, libere o acesso primeiro em
+                  Equipe &amp; Acessos.
+                </p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {quemExecuta === "avulso" && (
+                <div className="space-y-1">
+                  <Label htmlFor="nome">Nome</Label>
+                  <Input id="nome" name="nome" required placeholder="Nome de quem recebe" />
+                </div>
+              )}
+              <div className={cn("space-y-1", quemExecuta !== "avulso" && "col-span-2")}>
+                <Label htmlFor="papel">Papel</Label>
+                <Input id="papel" name="papel" placeholder="Desenvolvedor Fluig" />
+              </div>
             </div>
             <div className="space-y-1">
               <Label htmlFor="modalidade">Como é pago</Label>
