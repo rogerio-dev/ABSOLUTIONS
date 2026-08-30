@@ -69,6 +69,58 @@ function Painel() {
     },
   });
 
+  /*
+   * O que exige decisão hoje. O painel antigo mostrava só o funil, e metade do
+   * sistema — suporte, financeiro, prospecção, aceite de entrega — não aparecia
+   * em lugar nenhum. Sinal que não chega à primeira tela é sinal que não existe.
+   */
+  const { data: pendencias } = useQuery({
+    queryKey: ["painel-pendencias"],
+    enabled: !!me?.isStaff,
+    refetchInterval: 120_000,
+    queryFn: async () => {
+      const hoje = new Date().toISOString().slice(0, 10);
+      const agora = new Date().toISOString();
+      const [semDono, foraDoPrazo, entregas, alvos, receber, pagar] = await Promise.all([
+        supabase.from("tickets").select("id", { count: "exact", head: true })
+          .is("responsavel_id", null).not("status", "in", "(resolvido,fechado)"),
+        supabase.from("tickets").select("id", { count: "exact", head: true })
+          .not("status", "in", "(resolvido,fechado)").is("pausado_desde", null)
+          .lt("prazo_resolucao", agora),
+        supabase.from("entregas").select("id", { count: "exact", head: true })
+          .eq("situacao", "aguardando"),
+        supabase.from("prospect_alvos").select("id", { count: "exact", head: true })
+          .in("situacao", ["a_contatar", "tentando", "respondeu", "reuniao_marcada"])
+          .lte("proxima_acao_em", hoje),
+        supabase.from("recebimentos").select("id", { count: "exact", head: true })
+          .in("situacao", ["previsto", "emitido"]).lt("vencimento", hoje),
+        supabase.from("pagamentos").select("id", { count: "exact", head: true })
+          .in("situacao", ["previsto", "emitido"]).lt("vencimento", hoje),
+      ]);
+      return {
+        semDono: semDono.count ?? 0,
+        foraDoPrazo: foraDoPrazo.count ?? 0,
+        entregas: entregas.count ?? 0,
+        alvos: alvos.count ?? 0,
+        receber: receber.count ?? 0,
+        pagar: pagar.count ?? 0,
+      };
+    },
+  });
+
+  const { data: rentabilidade } = useQuery({
+    queryKey: ["painel-rentabilidade"],
+    enabled: !!me?.isAdmin,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("rentabilidade_cliente")
+        .select("*")
+        .order("faturado", { ascending: false })
+        .limit(8);
+      return data ?? [];
+    },
+  });
+
   const { data: topClientes } = useQuery({
     queryKey: ["painel-top"],
     enabled: !!me?.isStaff,
@@ -108,9 +160,41 @@ function Painel() {
   return (
     <AppShell>
       <PageHeader
-        title="Painel comercial"
-        subtitle="Visão geral da base TOTVS Fluig, funil e próximos compromissos."
+        title="Painel"
+        subtitle="O que exige decisão hoje, e como o negócio está."
       />
+
+      {/* Só aparece o que realmente pede ação. Painel que mostra zero em tudo
+          ensina a pessoa a ignorar o painel. */}
+      {pendencias &&
+        Object.values(pendencias).some((n) => n > 0) && (
+          <section className="panel mb-4 border-primary/30 bg-primary/5 p-4">
+            <p className="mb-3 text-sm font-medium text-primary">Precisa de você</p>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { n: pendencias.semDono, texto: "chamado(s) sem responsável", para: "/tickets" as const },
+                { n: pendencias.foraDoPrazo, texto: "chamado(s) fora do prazo", para: "/tickets" as const, grave: true },
+                { n: pendencias.entregas, texto: "entrega(s) esperando aceite do cliente", para: "/projetos" as const },
+                { n: pendencias.alvos, texto: "alvo(s) de prospecção com toque atrasado", para: "/prospeccao" as const },
+                { n: pendencias.receber, texto: "título(s) a receber vencido(s)", para: "/financeiro" as const, grave: true },
+                { n: pendencias.pagar, texto: "conta(s) a pagar vencida(s)", para: "/financeiro" as const, grave: true },
+              ]
+                .filter((x) => x.n > 0)
+                .map((x) => (
+                  <Link
+                    key={x.texto}
+                    to={x.para}
+                    className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors hover:border-primary/60 ${
+                      x.grave ? "border-rose-500/40" : "border-border"
+                    }`}
+                  >
+                    <strong className={x.grave ? "text-rose-300" : "text-foreground"}>{x.n}</strong>
+                    <span className="text-muted-foreground">{x.texto}</span>
+                  </Link>
+                ))}
+            </div>
+          </section>
+        )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Kpi icon={Building2} label="Empresas na base" value={String(data?.clientes ?? 0)} hint="Clientes e prospects" />
@@ -171,6 +255,61 @@ function Painel() {
           </Link>
         </div>
       </div>
+
+      {/* A pergunta que decide preço: este cliente paga o que custa atendê-lo?
+          Receita é o já faturado; custo são as horas orçadas nos cards
+          concluídos — o mesmo número que vira dívida com quem executa. */}
+      {me?.isAdmin && (rentabilidade ?? []).length > 0 && (
+        <section className="panel mt-4 p-5">
+          <h2 className="font-display text-base font-semibold">Rentabilidade por cliente</h2>
+          <p className="mb-3 mt-1 text-xs text-muted-foreground">
+            O custo considera só as horas já concluídas. Projeto em andamento ainda vai consumir mais.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[34rem] text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                  <th className="px-2 py-2 font-medium">Cliente</th>
+                  <th className="px-2 py-2 text-right font-medium">Faturado</th>
+                  <th className="px-2 py-2 text-right font-medium">Recebido</th>
+                  <th className="px-2 py-2 text-right font-medium">Custo</th>
+                  <th className="px-2 py-2 text-right font-medium">Margem</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {(rentabilidade ?? []).map((r) => {
+                  const margem = Number(r.faturado ?? 0) - Number(r.custo_execucao ?? 0);
+                  const pct = Number(r.faturado ?? 0) > 0
+                    ? Math.round((margem / Number(r.faturado)) * 100)
+                    : null;
+                  return (
+                    <tr key={r.id as string}>
+                      <td className="px-2 py-2">
+                        <Link to="/clientes/$id" params={{ id: r.id as string }} className="hover:text-primary">
+                          {r.nome as string}
+                        </Link>
+                      </td>
+                      <td className="px-2 py-2 text-right tabular-nums">{brl(Number(r.faturado))}</td>
+                      <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">
+                        {brl(Number(r.recebido))}
+                      </td>
+                      <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">
+                        {brl(Number(r.custo_execucao))}
+                      </td>
+                      <td className={`px-2 py-2 text-right tabular-nums font-medium ${
+                        margem >= 0 ? "text-emerald-400" : "text-rose-400"
+                      }`}>
+                        {brl(margem)}
+                        {pct !== null && <span className="ml-1 text-[11px] opacity-70">{pct}%</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
     </AppShell>
   );
 }

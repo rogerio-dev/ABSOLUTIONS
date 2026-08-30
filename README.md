@@ -74,6 +74,30 @@ Migrações em `supabase/migrations/`.
 E-mail e senha via Supabase. O botão "Continuar com Google" usa o OAuth nativo do Supabase — exige habilitar o provedor em **Authentication → Providers** no painel. Sem isso, o botão retorna erro e apenas o login por senha funciona.
 
 
+## Portal do cliente
+
+O que o cliente vê ao entrar: entregas esperando o aceite dele, projetos, chamados, faturas com a nota fiscal para baixar, contratos e reuniões. No topo, só o que pede ação — painel que mostra zero em tudo ensina a ignorar o painel.
+
+### Aceite de entrega
+
+Entrega aprovada por conversa não deixa rastro, e "isso não era o combinado" três meses depois é uma discussão que ninguém ganha. A equipe envia a entrega descrevendo **o que muda na operação do cliente** — descrição técnica não serve de base para aceite, porque ninguém aprova o que não entende.
+
+O cliente aprova ou pede ajuste, e fica registrado quem decidiu, quando e o que disse. Pedir ajuste **exige justificativa**; aprovar não. Decidida uma vez, não se decide de novo: o ajuste vira a versão seguinte, preservando o histórico da anterior.
+
+A decisão passa por função, não por `UPDATE` direto — assim o cliente não reescreve título, versão nem data de envio.
+
+### Faturas
+
+O cliente vê apenas títulos **emitidos ou pagos**. Título em `previsto` é projeção interna, e mostrá-lo viraria cobrança que ninguém combinou. A nota fiscal e o boleto ele baixa por URL assinada de 60 segundos; comprovante nosso e NF de fornecedor ficam de fora.
+
+**O que ele não vê continua igualmente deliberado:** nada de pagamentos, custo de execução, valor de hora do desenvolvedor ou margem. O financeiro do cliente é o extrato dele, não o nosso. Verificado: `pagamentos`, `colaboradores`, `financeiro_contas`, `colaborador_horas` e `rentabilidade_cliente` devolvem zero linha para ele.
+
+## Painel
+
+Abre pelo que exige decisão hoje: chamado sem responsável, chamado fora do prazo, entrega esperando aceite, alvo de prospecção com toque atrasado, título vencido dos dois lados. Cada um leva direto à tela onde se resolve, e o bloco só aparece quando há algo nele.
+
+**Rentabilidade por cliente** (admin) responde a pergunta que decide preço: este cliente paga o que custa atendê-lo? Receita é o já faturado; custo são as horas orçadas nos cards concluídos — o mesmo número que vira dívida com quem executa, então as duas pontas falam a mesma língua.
+
 ## Financeiro
 
 ### A decisão que organiza o módulo: horas não se apontam

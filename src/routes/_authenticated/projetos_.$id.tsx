@@ -57,6 +57,51 @@ function ProjetoDetalhe() {
    * `responsavel_id` que as horas do card chegam ao financeiro — nome escrito à
    * mão não liga a ninguém, e o custo some sem ninguém perceber.
    */
+  const [novaEntrega, setNovaEntrega] = useState(false);
+
+  const { data: entregas } = useQuery({
+    queryKey: ["entregas", id],
+    enabled: !!me?.isStaff,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("entregas")
+        .select("*")
+        .eq("project_id", id)
+        .order("enviada_em", { ascending: false });
+      return data ?? [];
+    },
+  });
+
+  const criarEntrega = useMutation({
+    mutationFn: async (f: FormData) => {
+      const { error } = await supabase.from("entregas").insert({
+        project_id: id,
+        titulo: String(f.get("titulo") ?? ""),
+        resultado: String(f.get("resultado") ?? ""),
+        enviada_por: me?.userId ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setNovaEntrega(false);
+      qc.invalidateQueries({ queryKey: ["entregas", id] });
+      toast.success("Entrega enviada para aceite do cliente.");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const reenviar = useMutation({
+    mutationFn: async (entrega: string) => {
+      const { error } = await supabase.rpc("reenviar_entrega", { _entrega: entrega });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["entregas", id] });
+      toast.success("Nova versão enviada para aceite.");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const { data: saude } = useQuery({
     queryKey: ["projeto-horas", id],
     enabled: !!me?.isStaff,
@@ -330,6 +375,114 @@ function ProjetoDetalhe() {
               Os cards somam mais horas do que foi vendido. Ou o orçamento está desatualizado, ou o
               projeto vai custar mais do que rendeu.
             </p>
+          )}
+        </section>
+      )}
+
+      {me?.isStaff && (
+        <section className="panel mb-4 p-4">
+          <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold">Entregas para aceite</h2>
+            <Dialog open={novaEntrega} onOpenChange={setNovaEntrega}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline">
+                  <Plus className="mr-2 h-4 w-4" /> Enviar entrega
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Enviar entrega para aceite</DialogTitle>
+                </DialogHeader>
+                <form
+                  className="space-y-3"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    criarEntrega.mutate(new FormData(e.currentTarget));
+                  }}
+                >
+                  <div className="space-y-1">
+                    <Label htmlFor="et">O que foi entregue</Label>
+                    <Input id="et" name="titulo" required placeholder="Workflow de requisição de compras" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="er">O que muda para o cliente</Label>
+                    <textarea
+                      id="er"
+                      name="resultado"
+                      rows={4}
+                      required
+                      placeholder="A partir de agora a requisição sai do formulário e vai direto para o gestor, com alçada por valor. Nada mais por e-mail."
+                      className="w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Descrição técnica não serve de base para aceite: ninguém aprova o que não entende.
+                    </p>
+                  </div>
+                  <Button type="submit" className="w-full" disabled={criarEntrega.isPending}>
+                    Enviar para o cliente
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+          <p className="mb-3 text-xs text-muted-foreground">
+            O aceite fica registrado com o nome de quem aprovou e a data. É o que substitui "eu lembro
+            que combinamos" três meses depois.
+          </p>
+
+          {(entregas ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhuma entrega enviada ainda.</p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {(entregas ?? []).map((e) => (
+                <li key={e.id as string} className="flex flex-wrap items-center gap-3 py-2.5">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium">
+                      {e.titulo as string}
+                      {Number(e.versao) > 1 && (
+                        <span className="ml-2 text-xs text-muted-foreground">v{e.versao as number}</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      enviada {d(e.enviada_em as string)}
+                      {e.decidida_em
+                        ? ` · ${e.situacao === "aprovado" ? "aprovada" : "ajuste pedido"} por ${
+                            (e.decidida_por_nome as string) ?? "cliente"
+                          } em ${d(e.decidida_em as string)}`
+                        : ""}
+                    </p>
+                    {e.observacao_cliente ? (
+                      <p className="mt-1 text-xs text-amber-300">{e.observacao_cliente as string}</p>
+                    ) : null}
+                  </div>
+                  <span
+                    className={`shrink-0 rounded border px-2 py-0.5 text-[11px] ${
+                      e.situacao === "aprovado"
+                        ? "border-emerald-500/30 text-emerald-300"
+                        : e.situacao === "ajuste"
+                          ? "border-amber-500/30 text-amber-300"
+                          : "border-sky-500/30 text-sky-300"
+                    }`}
+                  >
+                    {e.situacao === "aprovado"
+                      ? "aprovada"
+                      : e.situacao === "ajuste"
+                        ? "ajuste pedido"
+                        : "aguardando"}
+                  </span>
+                  {e.situacao === "ajuste" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={reenviar.isPending}
+                      onClick={() => reenviar.mutate(e.id as string)}
+                    >
+                      Enviar v{Number(e.versao) + 1}
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
           )}
         </section>
       )}

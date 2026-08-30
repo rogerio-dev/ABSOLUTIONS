@@ -749,6 +749,66 @@ export type Database = {
         }
         Relationships: []
       }
+      entregas: {
+        Row: {
+          id: string
+          project_id: string
+          task_id: string | null
+          titulo: string
+          descricao: string | null
+          resultado: string | null
+          versao: number
+          situacao: "aguardando" | "aprovado" | "ajuste"
+          enviada_em: string
+          enviada_por: string | null
+          decidida_em: string | null
+          decidida_por: string | null
+          decidida_por_nome: string | null
+          decidida_por_email: string | null
+          observacao_cliente: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          task_id?: string | null
+          titulo: string
+          descricao?: string | null
+          resultado?: string | null
+          versao?: number
+          situacao?: "aguardando" | "aprovado" | "ajuste"
+          enviada_em?: string
+          enviada_por?: string | null
+          decidida_em?: string | null
+          decidida_por?: string | null
+          decidida_por_nome?: string | null
+          decidida_por_email?: string | null
+          observacao_cliente?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          task_id?: string | null
+          titulo?: string
+          descricao?: string | null
+          resultado?: string | null
+          versao?: number
+          situacao?: "aguardando" | "aprovado" | "ajuste"
+          enviada_em?: string
+          enviada_por?: string | null
+          decidida_em?: string | null
+          decidida_por?: string | null
+          decidida_por_nome?: string | null
+          decidida_por_email?: string | null
+          observacao_cliente?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       colaboradores: {
         Row: {
           id: string
@@ -1604,6 +1664,18 @@ export type Database = {
       }
     }
     Views: {
+      rentabilidade_cliente: {
+        Row: {
+          id: string | null
+          nome: string | null
+          faturado: number | null
+          recebido: number | null
+          em_aberto: number | null
+          custo_execucao: number | null
+          horas_entregues: number | null
+        }
+        Relationships: []
+      }
       execucao_sem_ficha: {
         Row: {
           profile_id: string
@@ -1784,6 +1856,11 @@ export type Database = {
         }[]
       }
       marcar_email: { Args: { _id: string; _erro?: string | null }; Returns: undefined }
+      decidir_entrega: {
+        Args: { _entrega: string; _aprovar: boolean; _observacao?: string | null }
+        Returns: Database["public"]["Enums"]["aceite_situacao"]
+      }
+      reenviar_entrega: { Args: { _entrega: string; _resultado?: string | null }; Returns: string }
       equipe_interna: {
         Args: never
         Returns: {
@@ -1859,6 +1936,7 @@ export type Database = {
       pagamento_tipo: "colaborador" | "fornecedor" | "imposto" | "despesa"
       conta_tipo: "corrente" | "poupanca" | "caixa" | "aplicacao"
       financeiro_documento_tipo: "nf_emitida" | "nf_recebida" | "boleto" | "comprovante" | "contrato" | "outro"
+      aceite_situacao: "aguardando" | "aprovado" | "ajuste"
       alvo_situacao: "a_contatar" | "tentando" | "respondeu" | "reuniao_marcada" | "virou_oportunidade" | "descartado"
       contrato_modalidade: "banco_horas" | "fixo_mensal" | "projeto" | "horas_avulsas" | "alocacao"
       contrato_situacao: "rascunho" | "em_negociacao" | "ativo" | "suspenso" | "encerrado" | "cancelado"
