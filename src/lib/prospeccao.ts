@@ -9,38 +9,52 @@
 
 export const FATORES = [
   {
+    id: "momento",
+    label: "Entrou agora em Fluig",
+    maximo: 25,
+    ajuda: "Há quantos meses a empresa apareceu em Fluig. É o sinal mais forte da base, e o único que expira.",
+    cor: "bg-primary",
+  },
+  {
     id: "uso",
     label: "Uso do Fluig",
-    maximo: 30,
-    ajuda: "Quantos chamados a empresa já abriu. Muito chamado é ambiente complexo sem quem resolva por dentro.",
-    cor: "bg-primary",
+    maximo: 20,
+    ajuda: "Quantos chamados já abriu. Muito chamado é ambiente complexo sem quem resolva por dentro.",
+    cor: "bg-sky-400",
   },
   {
     id: "recencia",
     label: "Ainda está viva",
-    maximo: 25,
+    maximo: 15,
     ajuda: "Há quanto tempo foi o último chamado. Quem parou há três anos provavelmente largou o produto.",
     cor: "bg-emerald-400",
   },
   {
+    id: "sem_parceiro",
+    label: "Sem consultoria",
+    maximo: 10,
+    ajuda: "Não há consultoria atuando. É a diferença entre uma conversa e uma disputa com o incumbente.",
+    cor: "bg-fuchsia-400",
+  },
+  {
     id: "dor",
     label: "Dor agora",
-    maximo: 15,
+    maximo: 10,
     ajuda: "Chamados abertos neste momento. É gancho de conversa que e-mail frio não tem.",
     cor: "bg-rose-400",
   },
   {
     id: "porte",
     label: "Porte",
-    maximo: 15,
+    maximo: 10,
     ajuda: "Large e Select pagam contrato maior. Setor público compra, mas por licitação.",
     cor: "bg-violet-400",
   },
   {
     id: "alcance",
     label: "Dá para falar",
-    maximo: 15,
-    ajuda: "Telefone, e-mail e decisor mapeado. Score alto sem telefone não vira reunião.",
+    maximo: 10,
+    ajuda: "Telefone, e-mail e decisor mapeado. Score alto sem contato não vira reunião.",
     cor: "bg-amber-400",
   },
 ] as const;
@@ -91,6 +105,8 @@ export function faixaDoScore(score: number): { label: string; cor: string; texto
 }
 
 type Linha = {
+  p_momento?: number | null;
+  p_sem_parceiro?: number | null;
   p_uso: number;
   p_recencia: number;
   p_dor: number;
@@ -100,11 +116,13 @@ type Linha = {
 
 export function componentes(l: Linha): { id: FatorId; valor: number; maximo: number }[] {
   return [
-    { id: "uso", valor: Number(l.p_uso), maximo: 30 },
-    { id: "recencia", valor: Number(l.p_recencia), maximo: 25 },
-    { id: "dor", valor: Number(l.p_dor), maximo: 15 },
-    { id: "porte", valor: Number(l.p_porte), maximo: 15 },
-    { id: "alcance", valor: Number(l.p_alcance), maximo: 15 },
+    { id: "momento", valor: Number(l.p_momento ?? 0), maximo: 25 },
+    { id: "uso", valor: Number(l.p_uso), maximo: 20 },
+    { id: "recencia", valor: Number(l.p_recencia), maximo: 15 },
+    { id: "sem_parceiro", valor: Number(l.p_sem_parceiro ?? 0), maximo: 10 },
+    { id: "dor", valor: Number(l.p_dor), maximo: 10 },
+    { id: "porte", valor: Number(l.p_porte), maximo: 10 },
+    { id: "alcance", valor: Number(l.p_alcance), maximo: 10 },
   ];
 }
 
@@ -114,7 +132,43 @@ export function componentes(l: Linha): { id: FatorId; valor: number; maximo: num
  * O número sozinho não convence ninguém a pegar o telefone. O que convence é
  * "297 chamados, dois abertos agora, último na semana passada".
  */
+export const CLASSES_ENTRADA = [
+  {
+    id: "recente",
+    label: "Cliente novo",
+    ajuda: "Chegou agora na TOTVS e já em Fluig. Nenhum parceiro estabelecido.",
+    cor: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+  },
+  {
+    id: "cross_sell",
+    label: "Comprou Fluig agora",
+    ajuda: "Já era TOTVS em outro produto e acabou de entrar em Fluig.",
+    cor: "bg-primary/15 text-primary border-primary/30",
+  },
+  {
+    id: "novo_totvs",
+    label: "Novo na TOTVS",
+    ajuda: "Entrou na TOTVS agora, com Fluig no pacote.",
+    cor: "bg-violet-500/15 text-violet-300 border-violet-500/30",
+  },
+] as const;
+
+export const rotuloClasseEntrada = (id?: string | null) =>
+  CLASSES_ENTRADA.find((c) => c.id === id)?.label ?? "—";
+export const corClasseEntrada = (id?: string | null) =>
+  CLASSES_ENTRADA.find((c) => c.id === id)?.cor ?? "";
+
+/** Meses desde a entrada em Fluig, para a tela dizer "há 2 meses". */
+export function mesesDesde(iso?: string | null): number | null {
+  if (!iso) return null;
+  const dt = new Date(`${iso.slice(0, 10)}T00:00:00`);
+  const hoje = new Date();
+  return (hoje.getFullYear() - dt.getFullYear()) * 12 + (hoje.getMonth() - dt.getMonth());
+}
+
 export function porQue(l: {
+  fluig_entrada_em?: string | null;
+  fluig_tem_consultoria?: boolean | null;
   tickets_fluig?: number | null;
   tickets_abertos?: number | null;
   ultimo_ticket?: string | null;
@@ -122,6 +176,15 @@ export function porQue(l: {
   classificacao?: string | null;
 }): string[] {
   const razoes: string[] = [];
+
+  // A entrada recente vem primeiro porque é o que decide a abordagem.
+  const meses = mesesDesde(l.fluig_entrada_em);
+  if (meses !== null) {
+    razoes.push(
+      meses <= 0 ? "entrou em Fluig este mês" : `entrou em Fluig há ${meses} ${meses === 1 ? "mês" : "meses"}`,
+    );
+    if (!l.fluig_tem_consultoria) razoes.push("sem consultoria");
+  }
 
   const tk = l.tickets_fluig ?? 0;
   if (tk >= 100) razoes.push(`${tk} chamados de Fluig — ambiente pesado`);

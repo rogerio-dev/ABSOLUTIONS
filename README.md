@@ -166,17 +166,45 @@ São 8.297 empresas e uma pessoa. Atacar em ordem alfabética, ou por "quem eu l
 
 Misturar as duas é como o número do pipeline deixa de significar alguma coisa: cem cartões em "Novo" somando R$ 0 não é pipeline, é lista de tarefas. A promoção entre as camadas é explícita, e é ali que valor e previsão passam a fazer sentido.
 
+### Novos em Fluig
+
+O melhor momento para vender consultoria de Fluig não é quando a empresa usa o produto há cinco anos: é quando ela acabou de entrar. Está implantando, tem dúvida todo dia e — o que mais importa — **ainda não escolheu parceiro**.
+
+Um extrato do datalake do Zendesk trouxe 511 empresas que entraram em Fluig nos últimos doze meses, com duas informações que a base não tinha: **quando** cada uma entrou e por qual porta, e se **já tem consultoria** atuando. São 421 que não têm.
+
+| Classe | O que é |
+|---|---|
+| **Cliente novo** | chegou agora na TOTVS e já em Fluig |
+| **Comprou Fluig agora** | já era TOTVS em outro produto, entrou em Fluig |
+| **Novo na TOTVS** | entrou na TOTVS agora, com Fluig no pacote |
+
+Veio junto o e-mail do **administrador do portal Fluig** em 99,6% delas — quem opera a plataforma do lado do cliente, e quem sente primeiro a falta de ajuda. Entra como contato decisor.
+
+E-mail `@totvs.com.br` nesse campo é o consultor que fez a implantação, não o cliente: fica de fora, porque marcá-lo como decisor mandaria você falar com um funcionário da TOTVS achando que fala com a empresa.
+
+Reimportar quando sair extrato novo:
+
+```bash
+python scripts/importar-novos-fluig.py
+```
+
 ### O score
 
-Vive em uma **view**, não em coluna. Score guardado envelhece em silêncio, e o principal ingrediente aqui é recência — que muda sozinha todo dia.
+Vive em uma **view**, não em coluna. Score guardado envelhece em silêncio, e os ingredientes principais — recência e tempo desde a entrada — mudam sozinhos todo dia.
 
 | Fator | Até | Por quê |
 |---|---|---|
-| Uso do Fluig | 30 | Muito chamado é ambiente complexo sem quem resolva por dentro |
-| Ainda está viva | 25 | Quem parou de abrir chamado há três anos largou o produto |
-| Dor agora | 15 | Chamado aberto é gancho que e-mail frio não tem |
-| Porte | 15 | Large e Select pagam contrato maior |
-| Dá para falar | 15 | Score alto sem telefone não vira reunião |
+| **Entrou agora em Fluig** | **25** | O sinal mais forte da base, e o único que expira |
+| Uso do Fluig | 20 | Muito chamado é ambiente complexo sem quem resolva por dentro |
+| Ainda está viva | 15 | Quem parou de abrir chamado há três anos largou o produto |
+| **Sem consultoria** | **10** | A diferença entre uma conversa e uma disputa com o incumbente |
+| Dor agora | 10 | Chamado aberto é gancho que e-mail frio não tem |
+| Porte | 10 | Large e Select pagam contrato maior |
+| Dá para falar | 10 | Score alto sem contato não vira reunião |
+
+Os pesos antigos foram reduzidos para abrir espaço, e não por estarem errados: uso e recência descrevem uma empresa **madura** em Fluig, enquanto entrada recente descreve uma **janela que fecha**. Empresa que entrou mês passado e não tem parceiro vale mais que uma conta grande e antiga já atendida por outro.
+
+"Sem consultoria" só pontua para quem entrou agora. Em conta antiga, não constar consultoria no extrato significa que ela resolve internamente — não que a porta está aberta.
 
 Os componentes são expostos individualmente, e a tela mostra o porquê em texto: *"297 chamados, 2 abertos agora, mexeu no Fluig este mês, conta Large"*. O número sozinho não convence ninguém a pegar o telefone.
 

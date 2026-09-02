@@ -441,6 +441,11 @@ export type Database = {
           email_financeiro: string | null
           id: string
           is_carteira: boolean
+          fluig_entrada_em: string | null
+          fluig_classe_entrada: string | null
+          fluig_tem_consultoria: boolean | null
+          fluig_consultorias: string | null
+          canal_pvf: string | null
           macro_segmento: string | null
           nome: string
           observacoes: string | null
@@ -466,6 +471,11 @@ export type Database = {
           email_financeiro?: string | null
           id?: string
           is_carteira?: boolean
+          fluig_entrada_em?: string | null
+          fluig_classe_entrada?: string | null
+          fluig_tem_consultoria?: boolean | null
+          fluig_consultorias?: string | null
+          canal_pvf?: string | null
           macro_segmento?: string | null
           nome: string
           observacoes?: string | null
@@ -491,6 +501,11 @@ export type Database = {
           email_financeiro?: string | null
           id?: string
           is_carteira?: boolean
+          fluig_entrada_em?: string | null
+          fluig_classe_entrada?: string | null
+          fluig_tem_consultoria?: boolean | null
+          fluig_consultorias?: string | null
+          canal_pvf?: string | null
           macro_segmento?: string | null
           nome?: string
           observacoes?: string | null
@@ -1837,6 +1852,8 @@ export type Database = {
           _score_minimo?: number
           _so_com_telefone?: boolean
           _meses_recencia?: number | null
+          _meses_entrada?: number | null
+          _sem_consultoria?: boolean
         }
         Returns: { onda_id: string | null; selecionados: number }[]
       }

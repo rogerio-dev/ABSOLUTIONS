@@ -11,7 +11,16 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useMe } from "@/lib/auth";
 import { d } from "@/lib/crm";
-import { EM_ANDAMENTO, FATORES, componentes, faixaDoScore, porQue } from "@/lib/prospeccao";
+import {
+  EM_ANDAMENTO,
+  FATORES,
+  componentes,
+  corClasseEntrada,
+  faixaDoScore,
+  mesesDesde,
+  porQue,
+  rotuloClasseEntrada,
+} from "@/lib/prospeccao";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/prospeccao")({
@@ -45,6 +54,12 @@ type Alvo = {
   p_dor: number;
   p_porte: number;
   p_alcance: number;
+  p_momento: number;
+  p_sem_parceiro: number;
+  fluig_entrada_em: string | null;
+  fluig_classe_entrada: string | null;
+  fluig_tem_consultoria: boolean | null;
+  fluig_consultorias: string | null;
 };
 
 const CLASSIFICACOES = ["Large", "Select", "VIP", "Padrão", "Setor Público"];
@@ -78,23 +93,34 @@ function Prospeccao() {
   const [classificacao, setClassificacao] = useState("todas");
   const [segmento, setSegmento] = useState("todos");
   const [recencia, setRecencia] = useState("12");
-  const [soComTelefone, setSoComTelefone] = useState(true);
+  const [soComTelefone, setSoComTelefone] = useState(false);
+  // A base inteira, ou só quem entrou em Fluig no último ano.
+  const [recorte, setRecorte] = useState<"novos" | "base">("novos");
+  const [semConsultoria, setSemConsultoria] = useState(true);
   const [montando, setMontando] = useState(false);
 
   const { data: fila, isLoading: carregando } = useQuery({
-    queryKey: ["prospeccao", classificacao, segmento, recencia, soComTelefone],
+    queryKey: ["prospeccao", recorte, classificacao, segmento, recencia, soComTelefone, semConsultoria],
     enabled: !!me?.isStaff,
     queryFn: async () => {
       let q = supabase
         .from("prospeccao_ranqueada")
         .select(
-          "id, nome, classificacao, macro_segmento, tickets_fluig, tickets_abertos, ultimo_ticket, telefones, emails, decisores, score, disponivel, p_uso, p_recencia, p_dor, p_porte, p_alcance",
+          "id, nome, classificacao, macro_segmento, tickets_fluig, tickets_abertos, ultimo_ticket, telefones, emails, decisores, score, disponivel, p_uso, p_recencia, p_dor, p_porte, p_alcance, p_momento, p_sem_parceiro, fluig_entrada_em, fluig_classe_entrada, fluig_tem_consultoria, fluig_consultorias",
         )
         .eq("disponivel", true)
         .order("score", { ascending: false })
         .order("tickets_fluig", { ascending: false })
         .limit(300);
 
+      if (recorte === "novos") {
+        // Entrou em Fluig no último ano: a janela em que a decisão de parceiro
+        // ainda está aberta.
+        const corte = new Date();
+        corte.setFullYear(corte.getFullYear() - 1);
+        q = q.gte("fluig_entrada_em", corte.toISOString().slice(0, 10));
+        if (semConsultoria) q = q.not("fluig_tem_consultoria", "is", true);
+      }
       if (classificacao !== "todas") q = q.eq("classificacao", classificacao);
       if (segmento !== "todos") q = q.eq("macro_segmento", segmento);
       if (soComTelefone) q = q.gt("telefones", 0);
@@ -124,7 +150,8 @@ function Prospeccao() {
           .from("prospeccao_ranqueada")
           .select("id", { count: "exact", head: true })
           .eq("disponivel", true)
-          .gte("score", 60),
+          .gte("fluig_entrada_em", new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10))
+          .not("fluig_tem_consultoria", "is", true),
       ]);
       return {
         base: base.count ?? 0,
@@ -168,16 +195,18 @@ function Prospeccao() {
       const { data, error } = await supabase.rpc("montar_onda", {
         _nome: form.nome,
         _quantidade: form.quantidade,
-        _descricao: `${classificacao === "todas" ? "todas as contas" : classificacao} · ${
+        _descricao: `${recorte === "novos" ? "novos em Fluig (12 meses)" : "base inteira"}${
+          recorte === "novos" && semConsultoria ? ", sem consultoria" : ""
+        } · ${classificacao === "todas" ? "todas as contas" : classificacao} · ${
           segmento === "todos" ? "todos os segmentos" : segmento
-        } · ${recencia === "todos" ? "sem corte de recência" : `ativos nos últimos ${recencia} meses`}${
-          soComTelefone ? " · só com telefone" : ""
-        }`,
+        }${soComTelefone ? " · só com telefone" : ""}`,
         _classificacoes: classificacao === "todas" ? null : [classificacao],
         _segmentos: segmento === "todos" ? null : [segmento],
         _score_minimo: form.scoreMinimo,
         _so_com_telefone: soComTelefone,
         _meses_recencia: recencia === "todos" ? null : Number(recencia),
+        _meses_entrada: recorte === "novos" ? 12 : null,
+        _sem_consultoria: recorte === "novos" && semConsultoria,
       });
       if (error) throw error;
       const r = data?.[0];
@@ -214,7 +243,7 @@ function Prospeccao() {
         title="Prospecção"
         subtitle={
           panorama
-            ? `${panorama.base.toLocaleString("pt-BR")} empresas na base · ${panorama.disponiveis.toLocaleString("pt-BR")} disponíveis · ${panorama.quentes} com score 60+`
+            ? `${panorama.base.toLocaleString("pt-BR")} empresas na base · ${panorama.disponiveis.toLocaleString("pt-BR")} disponíveis · ${panorama.quentes} entraram em Fluig no último ano sem consultoria`
             : "Carregando a base…"
         }
         action={
@@ -338,6 +367,37 @@ function Prospeccao() {
         </div>
       </section>
 
+      <div className="mb-3 flex flex-wrap items-center gap-1 border-b border-border">
+        {(
+          [
+            { id: "novos", label: "Novos em Fluig" },
+            { id: "base", label: "Toda a base" },
+          ] as const
+        ).map((x) => (
+          <button
+            key={x.id}
+            type="button"
+            onClick={() => setRecorte(x.id)}
+            className={cn(
+              "-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors",
+              recorte === x.id
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {x.label}
+          </button>
+        ))}
+      </div>
+
+      {recorte === "novos" && (
+        <p className="mb-3 max-w-4xl text-xs text-muted-foreground">
+          Empresas que apareceram em Fluig nos últimos doze meses, vindas do extrato do datalake. É a
+          janela em que a decisão de parceiro ainda está aberta — quem entrou há um ano já escolheu com
+          quem trabalha.
+        </p>
+      )}
+
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="relative min-w-56 flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -395,6 +455,21 @@ function Prospeccao() {
         >
           <Phone className="h-3.5 w-3.5" /> só com telefone
         </button>
+        {recorte === "novos" && (
+          <button
+            type="button"
+            onClick={() => setSemConsultoria((v) => !v)}
+            title="Esconde quem já tem consultoria atuando"
+            className={cn(
+              "inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm transition-colors",
+              semConsultoria
+                ? "border-primary/40 bg-primary/10 text-primary"
+                : "border-input text-muted-foreground hover:bg-muted",
+            )}
+          >
+            sem consultoria
+          </button>
+        )}
       </div>
 
       {carregando ? (
@@ -436,7 +511,23 @@ function Prospeccao() {
                       <p className="mt-0.5 truncate text-xs text-muted-foreground">
                         {porQue(a).join(" · ")}
                       </p>
+                      {a.fluig_tem_consultoria && a.fluig_consultorias && (
+                        <p className="mt-0.5 truncate text-[11px] text-amber-400">
+                          já atendida por {a.fluig_consultorias}
+                        </p>
+                      )}
                     </div>
+                    {a.fluig_classe_entrada && (
+                      <span
+                        className={cn(
+                          "hidden shrink-0 rounded border px-2 py-0.5 text-[10px] md:inline-flex",
+                          corClasseEntrada(a.fluig_classe_entrada),
+                        )}
+                        title={`Entrou em Fluig há ${mesesDesde(a.fluig_entrada_em) ?? 0} mês(es)`}
+                      >
+                        {rotuloClasseEntrada(a.fluig_classe_entrada)}
+                      </span>
+                    )}
                     <div className="hidden shrink-0 text-right text-xs text-muted-foreground sm:block">
                       <p>{a.classificacao ?? "—"}</p>
                       <p>{a.macro_segmento ?? "—"}</p>
